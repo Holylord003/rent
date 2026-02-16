@@ -1,0 +1,16 @@
+Verify Your Email Address
+
+Hello{% if user.username %} {{ user.username }}{% endif %},
+
+Thank you for creating an account with Property Reviews! To complete your registration, please verify your email address by entering the verification code below:
+
+Verification Code: {{ code }}
+
+Important: This code will expire in 30 minutes for security reasons.
+
+Visit this link to verify your email:
+{{ protocol }}://{{ domain }}{% url 'reviews:verify_email' user_id=user.id %}
+
+If you didn't create an account with Property Reviews, please ignore this email or contact us at {{ contact_email }} if you have concerns.
+
+This is an automated message from Property Reviews. Please do not reply to this email.

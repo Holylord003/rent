@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Terms of Service - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Terms of Service</h1>
+        <p class="text-gray-600 mb-6 text-sm">Last updated: {% now "F d, Y" %}</p>
+
+        <div class="prose prose-sm max-w-none space-y-6">
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">1. Acceptance of Terms</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    By accessing and using the Property Reviews Platform ("the Platform"), you accept and agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Platform.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">2. User Accounts</h2>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
+                    <li>You agree to provide accurate and complete information when creating an account.</li>
+                    <li>You are responsible for all activities that occur under your account.</li>
+                    <li>You must notify us immediately of any unauthorized use of your account.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">3. User Content and Conduct</h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    When posting reviews, comments, or other content on the Platform, you agree to:
+                </p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>Post only truthful, accurate, and opinion-based content based on your personal experiences.</li>
+                    <li>Not post defamatory, libelous, harassing, threatening, or discriminatory content.</li>
+                    <li>Not post false, misleading, or fraudulent information.</li>
+                    <li>Not post content that violates any laws or regulations.</li>
+                    <li>Not impersonate any person or entity.</li>
+                    <li>Not post spam, advertisements, or promotional content without authorization.</li>
+                    <li>Respect the privacy and rights of others.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">4. Content Ownership and License</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    By posting content on the Platform, you grant us a non-exclusive, worldwide, royalty-free license to use, display, and distribute your content on the Platform. You retain ownership of your content and are responsible for it.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">5. Disclaimer of Warranties</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    The Platform is provided "as is" without warranties of any kind. We do not guarantee the accuracy, completeness, or reliability of any content posted by users. All reviews and comments are the opinions of individual users and do not represent our views.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Limitation of Liability</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    To the maximum extent permitted by law, we shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Platform or reliance on any content posted by users.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Content Moderation</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    While we reserve the right to review, edit, or remove content that violates these terms, we are not obligated to do so. We may remove content at our discretion without prior notice.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Termination</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    We reserve the right to suspend or terminate your account and access to the Platform at any time, with or without cause, and with or without notice, for any violation of these terms or for any other reason.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Changes to Terms</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    We reserve the right to modify these Terms of Service at any time. Your continued use of the Platform after changes are posted constitutes acceptance of the modified terms.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">10. Contact Information</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    If you have questions about these Terms of Service, please contact us through the Platform's contact mechanisms.
+                </p>
+            </section>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <a href="{% url 'reviews:all_properties' %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                ← Back to Properties
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,424 @@
+{% extends 'base.html' %}
+{% load review_filters %}
+
+{% block title %}My Profile - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Profile Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl shadow-xl p-6 sm:p-8 mb-8 text-white relative overflow-hidden">
+        <div class="absolute inset-0 bg-black opacity-5"></div>
+        <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div class="flex-shrink-0">
+                <div class="w-20 h-20 sm:w-24 sm:h-24 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-4xl sm:text-5xl font-bold shadow-lg backdrop-blur-sm border-2 border-white border-opacity-30">
+                    {{ user.username|first|upper }}
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h1 class="text-3xl sm:text-4xl font-bold mb-2 truncate">{{ user.get_full_name|default:user.username }}</h1>
+                <p class="text-blue-100 text-sm sm:text-base mb-3 truncate">{{ user.email }}</p>
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <span class="flex items-center gap-2 bg-white bg-opacity-10 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Member since {{ user.date_joined|date:"F Y" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <!-- Main Content Area -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Account Settings Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Profile Information Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                    <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-900">Profile Information</h2>
+                                    <p class="text-xs text-gray-600">Personal details</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'reviews:edit_profile' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Edit
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0">
+                                <span class="text-sm font-medium text-gray-600">Username</span>
+                                <span class="text-sm font-semibold text-gray-900 truncate ml-4">{{ user.username }}</span>
+                            </div>
+                            <div class="flex items-center justify-between py-2.5 border-b border-gray-100 last:border-0">
+                                <span class="text-sm font-medium text-gray-600">Email</span>
+                                <span class="text-sm font-semibold text-gray-900 truncate ml-4 text-right">{{ user.email }}</span>
+                            </div>
+                            <div class="flex items-center justify-between py-2.5">
+                                <span class="text-sm font-medium text-gray-600">Full Name</span>
+                                <span class="text-sm font-semibold text-gray-900 truncate ml-4">{{ user.get_full_name|default:"Not set" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Password Card -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                    <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-900">Password & Security</h2>
+                                    <p class="text-xs text-gray-600">Account security</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'reviews:change_password' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                                Change
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
+                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-sm text-gray-700 leading-relaxed">Your password is secure. Update it regularly for better security.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User's Properties Section -->
+            <div>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">My Properties</h2>
+                        <p class="text-gray-600 text-sm">Manage and view all your listed properties</p>
+                    </div>
+                    <a href="{% url 'reviews:create_property' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md whitespace-nowrap">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Property
+                    </a>
+                </div>
+
+                {% if user_properties %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    {% for property in user_properties %}
+                    <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+                        {% if property.primary_image %}
+                        <a href="{% url 'reviews:property_detail' property.id %}" class="block relative overflow-hidden bg-gray-100">
+                            <img src="{{ property.primary_image.url }}" alt="{{ property.address }}" class="w-full h-40 sm:h-48 object-cover transition-transform duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="absolute top-3 right-3 bg-white bg-opacity-95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+                                <span class="text-xs font-semibold text-gray-700">{{ property.get_property_type_display }}</span>
+                            </div>
+                        </a>
+                        {% elif property.image %}
+                        <a href="{% url 'reviews:property_detail' property.id %}" class="block relative overflow-hidden bg-gray-100">
+                            <img src="{{ property.image.url }}" alt="{{ property.address }}" class="w-full h-40 sm:h-48 object-cover transition-transform duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div class="absolute top-3 right-3 bg-white bg-opacity-95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+                                <span class="text-xs font-semibold text-gray-700">{{ property.get_property_type_display }}</span>
+                            </div>
+                        </a>
+                        {% else %}
+                        <div class="w-full h-40 sm:h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
+                            <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            <div class="absolute top-3 right-3 bg-white bg-opacity-95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
+                                <span class="text-xs font-semibold text-gray-700">{{ property.get_property_type_display }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="p-4 sm:p-5">
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                <a href="{% url 'reviews:property_detail' property.id %}">
+                                    {{ property.address }}
+                                </a>
+                            </h3>
+                            <p class="text-xs sm:text-sm text-gray-600 mb-3 flex items-center gap-1.5 line-clamp-1">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <span class="truncate">{{ property.city }}, {{ property.state }}</span>
+                            </p>
+                        
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    {% if property.review_count %}
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                        </svg>
+                                        {{ property.review_count }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-xs text-gray-400">No reviews yet</span>
+                                    {% endif %}
+                                </div>
+                                {% if property.avg_rating %}
+                                <div class="flex items-center gap-1.5">
+                                    <div class="flex items-center">
+                                        {% for i in "12345" %}
+                                        {% if forloop.counter <= property.avg_rating|to_int %}
+                                        <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="text-sm font-semibold text-gray-700">{{ property.avg_rating|floatformat:1 }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex gap-2">
+                                <a href="{% url 'reviews:property_detail' property.id %}" class="flex-1 text-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md text-sm">
+                                    View
+                                </a>
+                                <form method="post" action="{% url 'reviews:delete_property' property.id %}" class="flex-shrink-0" onsubmit="return confirm('Are you sure you want to delete this property? This action cannot be undone. All reviews and images associated with this property will also be deleted.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-semibold shadow-md flex items-center justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-12 text-center">
+                    <div class="max-w-md mx-auto">
+                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">No Properties Yet</h3>
+                        <p class="text-gray-600 mb-6">Start building your property portfolio by adding your first property listing.</p>
+                        <a href="{% url 'reviews:create_property' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add Your First Property
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Recent Reviews Section -->
+            {% if user_reviews %}
+            <div>
+                <div class="mb-6">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">My Recent Reviews</h2>
+                    <p class="text-gray-600 text-sm">View and manage all your property reviews</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div class="divide-y divide-gray-200">
+                        {% for review in user_reviews %}
+                        <div class="p-6 hover:bg-gray-50 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <div class="flex-shrink-0 p-2 bg-blue-100 rounded-lg">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <a href="{% url 'reviews:property_detail' review.property.id %}" class="text-lg font-bold text-gray-900 hover:text-blue-600 transition-colors mb-2 block truncate">
+                                                {{ review.property.full_address }}
+                                            </a>
+                                            <div class="flex items-center gap-3 flex-wrap">
+                                                <div class="flex items-center gap-1">
+                                                    {% for i in "12345" %}
+                                                    {% if forloop.counter <= review.rating %}
+                                                    <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                    </svg>
+                                                    {% else %}
+                                                    <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                    </svg>
+                                                    {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                                <span class="text-xs text-gray-500 flex items-center gap-1">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                    {{ review.created_at|date:"M d, Y" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if review.content %}
+                                    <div class="pl-11" x-data="{ expanded: false, showButton: false }" x-init="
+                                        setTimeout(() => {
+                                            const truncated = $refs.truncated;
+                                            const full = $refs.full;
+                                            if (truncated && full) {
+                                                showButton = full.scrollHeight > truncated.scrollHeight;
+                                            }
+                                        }, 100);
+                                    ">
+                                        <p class="text-sm text-gray-700 leading-relaxed line-clamp-2 break-words" 
+                                           x-ref="truncated"
+                                           x-show="!expanded">
+                                            {{ review.content }}
+                                        </p>
+                                        <p class="text-sm text-gray-700 leading-relaxed" 
+                                           x-ref="full"
+                                           style="position: absolute; visibility: hidden; width: 200px; max-width: 600px; word-wrap: break-word;">
+                                            {{ review.content }}
+                                        </p>
+                                        <p class="text-sm text-gray-700 leading-relaxed break-words" 
+                                           x-show="expanded"
+                                           x-cloak>
+                                            {{ review.content }}
+                                        </p>
+                                        <button 
+                                            @click="expanded = !expanded"
+                                            x-show="showButton || expanded"
+                                            x-text="expanded ? 'See less' : 'See more'"
+                                            class="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex gap-2 sm:flex-col sm:items-end sm:flex-shrink-0">
+                                    <a href="{% url 'reviews:edit_review' review.id %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                        Edit
+                                    </a>
+                                    <a href="{% url 'reviews:delete_review' review.id %}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm whitespace-nowrap">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        Delete
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar: Stats and Quick Info -->
+        <div class="space-y-6">
+            <!-- Account Stats -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-purple-100 rounded-lg">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-bold text-gray-900">Statistics</h2>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 hover:shadow-md transition-all cursor-default">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-blue-500 rounded-lg">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700">Properties</span>
+                            </div>
+                            <span class="text-2xl font-bold text-blue-600">{{ properties_count }}</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 hover:shadow-md transition-all cursor-default">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-green-500 rounded-lg">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700">Reviews</span>
+                            </div>
+                            <span class="text-2xl font-bold text-green-600">{{ reviews_count }}</span>
+                        </div>
+                        <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-md transition-all cursor-default">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-gray-500 rounded-lg">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-semibold text-gray-700">Member Since</span>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-600">{{ user.date_joined|date:"M Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 bg-orange-100 rounded-lg">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-bold text-gray-900">Quick Actions</h2>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-3">
+                        <a href="{% url 'reviews:create_property' %}" class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add New Property
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

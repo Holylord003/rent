@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Review - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <div class="mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Edit Your Review</h1>
+            <p class="text-gray-600">
+                <a href="{% url 'reviews:property_detail' property.id %}" class="text-blue-600 hover:text-blue-700">
+                    {{ property.full_address }}
+                </a>
+            </p>
+        </div>
+        
+        <form method="post" action="{% url 'reviews:edit_review' review.id %}">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="{{ form.rating.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Overall Rating *
+                    </label>
+                    {{ form.rating }}
+                    {% if form.rating.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.rating.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Your Comment * (min. 50 characters)
+                    </label>
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.pros_cons.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Pros & Cons (Optional)
+                    </label>
+                    {{ form.pros_cons }}
+                    {% if form.pros_cons.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.pros_cons.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.date_lived_from.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date Lived From (Optional)
+                        </label>
+                        {{ form.date_lived_from }}
+                        {% if form.date_lived_from.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.date_lived_from.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.date_lived_to.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date Lived To (Optional)
+                        </label>
+                        {{ form.date_lived_to }}
+                        {% if form.date_lived_to.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.date_lived_to.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center mb-3">
+                        <input type="checkbox" name="use_real_name" id="use_real_name_edit" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" {% if form.use_real_name.value %}checked{% endif %}>
+                        <label for="use_real_name_edit" class="ml-2 text-sm font-medium text-gray-700">
+                            Use my name ({{ user.get_full_name|default:user.username }})
+                        </label>
+                    </div>
+                    <div id="anonymousOptionEdit" class="mb-3">
+                        <input type="checkbox" name="post_as" id="post_as_anonymous_edit" value="anonymous" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="post_as_anonymous_edit" class="ml-2 text-sm font-medium text-gray-700">
+                            Post anonymously
+                        </label>
+                    </div>
+                    <div id="nameFieldEdit" class="mb-3">
+                        <label for="{{ form.author_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Name
+                        </label>
+                        {{ form.author_name }}
+                        {% if form.author_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.author_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
+                    Update Review
+                </button>
+                <a href="{% url 'reviews:property_detail' property.id %}" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-center font-medium">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const useRealNameCheckbox = document.getElementById('use_real_name_edit');
+        const anonymousCheckbox = document.getElementById('post_as_anonymous_edit');
+        const nameField = document.getElementById('nameFieldEdit');
+        const authorNameInput = document.querySelector('input[name="author_name"]');
+
+        function updateNameFields() {
+            if (useRealNameCheckbox && anonymousCheckbox && nameField) {
+                if (useRealNameCheckbox.checked) {
+                    anonymousCheckbox.checked = false;
+                    nameField.classList.remove('hidden');
+                    if (authorNameInput) {
+                        authorNameInput.value = '{{ user.get_full_name|default:user.username }}';
+                    }
+                } else {
+                    anonymousCheckbox.checked = true;
+                    nameField.classList.add('hidden');
+                    if (authorNameInput) {
+                        authorNameInput.value = '';
+                    }
+                }
+            }
+        }
+
+        if (useRealNameCheckbox) {
+            useRealNameCheckbox.addEventListener('change', updateNameFields);
+        }
+
+        if (anonymousCheckbox) {
+            anonymousCheckbox.addEventListener('change', function() {
+                if (anonymousCheckbox.checked) {
+                    useRealNameCheckbox.checked = false;
+                    updateNameFields();
+                } else {
+                    useRealNameCheckbox.checked = true;
+                    updateNameFields();
+                }
+            });
+        }
+
+        updateNameFields();
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete User - {{ user_obj.username }} - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-red-600 mb-4">Delete User</h1>
+        
+        <div class="mb-6">
+            <p class="text-gray-700 mb-4">
+                Are you sure you want to delete the user account for
+                <span class="font-semibold text-gray-900">{{ user_obj.username }}</span>?
+            </p>
+            
+            <div class="bg-red-50 border border-red-200 p-4 rounded-lg mb-4">
+                <p class="text-red-800 font-medium mb-2">⚠️ Warning: This action cannot be undone.</p>
+                <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+                    <li>All properties created by this user will be deleted</li>
+                    <li>All reviews created by this user will be deleted</li>
+                    <li>All replies and comments will be permanently removed</li>
+                    <li>All associated data will be permanently deleted</li>
+                </ul>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg mb-4">
+                <h3 class="font-semibold text-gray-900 mb-2">User Information:</h3>
+                <dl class="grid grid-cols-2 gap-2 text-sm">
+                    <dt class="text-gray-600">Username:</dt>
+                    <dd class="text-gray-900">{{ user_obj.username }}</dd>
+                    <dt class="text-gray-600">Email:</dt>
+                    <dd class="text-gray-900">{{ user_obj.email }}</dd>
+                    <dt class="text-gray-600">Properties:</dt>
+                    <dd class="text-gray-900">{{ user_obj.properties_created.count }}</dd>
+                    <dt class="text-gray-600">Reviews:</dt>
+                    <dd class="text-gray-900">{{ user_obj.reviews_created.count }}</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <form method="post" action="{% url 'reviews:staff_user_delete' user_obj.id %}">
+            {% csrf_token %}
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+                    Yes, Delete User
+                </button>
+                <a href="{% url 'reviews:staff_user_detail' user_obj.id %}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-center">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

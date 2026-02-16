@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Notifications</h1>
+                <p class="text-gray-600 text-sm">
+                    {% if filter_type == 'unread' %}
+                        Showing unread notifications
+                    {% elif filter_type == 'read' %}
+                        Showing read notifications
+                    {% else %}
+                        Showing all notifications
+                    {% endif %}
+                </p>
+            </div>
+            <div class="flex gap-2">
+                <!-- Filter Buttons -->
+                <a href="{% url 'reviews:notifications_center' %}?filter=all" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg {% if filter_type == 'all' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    All
+                </a>
+                <a href="{% url 'reviews:notifications_center' %}?filter=unread" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg {% if filter_type == 'unread' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    Unread ({{ unread_count }})
+                </a>
+                <a href="{% url 'reviews:notifications_center' %}?filter=read" 
+                   class="px-3 py-2 text-sm font-medium rounded-lg {% if filter_type == 'read' %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    Read
+                </a>
+                {% if unread_count > 0 %}
+                <button onclick="markAllAsRead()" class="px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700">
+                    Mark All Read
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if notifications %}
+        <div class="space-y-3">
+            {% for notification in notifications %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors {% if not notification.is_read %}bg-blue-50 border-blue-200{% endif %}" 
+                 id="notification_{{ notification.id }}">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-start gap-3">
+                            {% if not notification.is_read %}
+                            <div class="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                            {% else %}
+                            <div class="w-2 h-2 bg-transparent mt-2 flex-shrink-0"></div>
+                            {% endif %}
+                            <div class="flex-1">
+                                <h3 class="text-sm sm:text-base font-semibold text-gray-900 mb-1">
+                                    {{ notification.title }}
+                                </h3>
+                                <p class="text-sm text-gray-600 mb-2">
+                                    {{ notification.message }}
+                                </p>
+                                <div class="flex items-center gap-4 text-xs text-gray-500">
+                                    <span>{{ notification.created_at|timesince }} ago</span>
+                                    {% if notification.property %}
+                                    <a href="{% url 'reviews:property_detail' notification.property.id %}{% if notification.review %}#review_{{ notification.review.id }}{% endif %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                                        View Property →
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if not notification.is_read %}
+                    <button onclick="markAsRead({{ notification.id }})" 
+                            class="px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                        Mark Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <p class="text-gray-600 text-lg mb-2">No notifications</p>
+            <p class="text-gray-500 text-sm">
+                {% if filter_type == 'unread' %}
+                    You're all caught up! No unread notifications.
+                {% elif filter_type == 'read' %}
+                    No read notifications yet.
+                {% else %}
+                    You don't have any notifications yet.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function markAsRead(notificationId) {
+        fetch(`{% url 'reviews:mark_notification_read_api' 0 %}`.replace('0', notificationId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const notificationEl = document.getElementById(`notification_${notificationId}`);
+                if (notificationEl) {
+                    notificationEl.classList.remove('bg-blue-50', 'border-blue-200');
+                    notificationEl.classList.add('bg-white');
+                    const markReadBtn = notificationEl.querySelector('button');
+                    if (markReadBtn) {
+                        markReadBtn.remove();
+                    }
+                    const dot = notificationEl.querySelector('.bg-blue-600');
+                    if (dot) {
+                        dot.classList.remove('bg-blue-600');
+                        dot.classList.add('bg-transparent');
+                    }
+                }
+                // Update unread count in filter buttons
+                updateUnreadCount();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function markAllAsRead() {
+        if (!confirm('Mark all notifications as read?')) {
+            return;
+        }
+        
+        fetch('{% url "reviews:mark_all_notifications_read_api" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload page to show updated state
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function updateUnreadCount() {
+        fetch('{% url "reviews:get_unread_notification_count_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Update count in filter buttons
+            const unreadLink = document.querySelector('a[href*="filter=unread"]');
+            if (unreadLink) {
+                unreadLink.textContent = `Unread (${data.count})`;
+            }
+            // Update notification badge in navigation if exists
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+        });
+    }
+
+    // Update count on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateUnreadCount();
+    });
+</script>
+{% endblock %}
+

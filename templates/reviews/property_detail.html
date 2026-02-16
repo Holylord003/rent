@@ -1,0 +1,1454 @@
+{% extends 'base.html' %}
+{% load review_filters %}
+
+{% block title %}{{ property.full_address }} - Property Reviews{% endblock %}
+
+{% block meta_tags %}
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %}">
+<meta property="og:title" content="{{ property.full_address }} - Property Reviews">
+<meta property="og:description" content="{% if avg_rating %}Rated {{ avg_rating|floatformat:1 }}/5.0{% else %}View property details and reviews{% endif %} - {{ review_count }} review{{ review_count|pluralize }}">
+{% if property_images %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ property_images.0.image.url }}">
+{% elif property.image %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ property.image.url }}">
+{% endif %}
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="{{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %}">
+<meta name="twitter:title" content="{{ property.full_address }} - Property Reviews">
+<meta name="twitter:description" content="{% if avg_rating %}Rated {{ avg_rating|floatformat:1 }}/5.0{% else %}View property details and reviews{% endif %} - {{ review_count }} review{{ review_count|pluralize }}">
+{% if property_images %}
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ property_images.0.image.url }}">
+{% elif property.image %}
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ property.image.url }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Property Header -->
+    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <!-- Property Images Gallery -->
+        {% if property_images %}
+        <div class="mb-4" x-data="{ 
+            selectedImage: 0,
+            showModal: false,
+            autoSlideInterval: null,
+            isPaused: false,
+            images: [
+                {% for img in property_images %}
+                { url: '{{ img.image.url }}', alt: 'Property image {{ forloop.counter }}' }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            nextImage() {
+                this.selectedImage = (this.selectedImage + 1) % this.images.length;
+            },
+            prevImage() {
+                this.selectedImage = (this.selectedImage - 1 + this.images.length) % this.images.length;
+            },
+            openModal(index) {
+                this.selectedImage = index;
+                this.showModal = true;
+                this.pauseAutoSlide();
+                document.body.style.overflow = 'hidden';
+            },
+            closeModal() {
+                this.showModal = false;
+                this.resumeAutoSlide();
+                document.body.style.overflow = '';
+            },
+            pauseAutoSlide() {
+                this.isPaused = true;
+                if (this.autoSlideInterval) {
+                    clearInterval(this.autoSlideInterval);
+                    this.autoSlideInterval = null;
+                }
+            },
+            resumeAutoSlide() {
+                this.isPaused = false;
+                this.startAutoSlide();
+            },
+            startAutoSlide() {
+                {% if property_images|length > 1 %}
+                if (this.images.length > 1 && !this.isPaused && !this.showModal) {
+                    if (this.autoSlideInterval) {
+                        clearInterval(this.autoSlideInterval);
+                    }
+                    this.autoSlideInterval = setInterval(() => {
+                        if (!this.isPaused && !this.showModal) {
+                            this.nextImage();
+                        }
+                    }, 5000); // 5 seconds
+                }
+                {% endif %}
+            },
+            stopAutoSlide() {
+                if (this.autoSlideInterval) {
+                    clearInterval(this.autoSlideInterval);
+                    this.autoSlideInterval = null;
+                }
+            }
+        }" 
+        x-init="startAutoSlide()" 
+        x-on:mouseenter="pauseAutoSlide()" 
+        x-on:mouseleave="resumeAutoSlide()"
+        @keydown.escape="closeModal()" 
+        @keydown.arrow-left="prevImage()" 
+        @keydown.arrow-right="nextImage()">
+            <!-- Main Image Display -->
+            <div class="mb-3 relative">
+                <img :src="images[selectedImage].url" 
+                     :alt="images[selectedImage].alt"
+                     class="w-full h-64 sm:h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                     @click="openModal(selectedImage)">
+                {% if property_images|length > 1 %}
+                <!-- Previous Button -->
+                <button @click="prevImage(); pauseAutoSlide(); setTimeout(() => resumeAutoSlide(), 3000)" 
+                        class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 sm:p-3 transition-all z-10">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                
+                <!-- Next Button -->
+                <button @click="nextImage(); pauseAutoSlide(); setTimeout(() => resumeAutoSlide(), 3000)" 
+                        class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 sm:p-3 transition-all z-10">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                
+                <!-- Image Counter -->
+                <div class="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-lg text-sm">
+                    <span x-text="selectedImage + 1"></span> / <span x-text="images.length"></span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Thumbnail Gallery -->
+            {% if property_images|length > 1 %}
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {% for img in property_images %}
+                <button @click="selectedImage = {{ forloop.counter0 }}; pauseAutoSlide(); setTimeout(() => resumeAutoSlide(), 3000)" 
+                        :class="selectedImage === {{ forloop.counter0 }} ? 'ring-2 ring-blue-500' : 'border-2 border-transparent'"
+                        class="relative overflow-hidden rounded-lg hover:border-blue-300 transition-all cursor-pointer">
+                    <img src="{{ img.image.url }}" 
+                         alt="Property image {{ forloop.counter }}"
+                         class="w-full h-20 sm:h-24 object-cover">
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Image Modal/Popup -->
+            <div x-show="showModal" 
+                 x-cloak
+                 @click.self="closeModal()"
+                 class="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
+                 style="display: none;">
+                <!-- Close Button -->
+                <button @click="closeModal()" 
+                        class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                
+                <!-- Previous Arrow -->
+                {% if property_images|length > 1 %}
+                <button @click="prevImage()" 
+                        class="absolute left-4 text-white hover:text-gray-300 transition-colors z-10 bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-70">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                
+                <!-- Next Arrow -->
+                <button @click="nextImage()" 
+                        class="absolute right-4 text-white hover:text-gray-300 transition-colors z-10 bg-black bg-opacity-50 rounded-full p-3 hover:bg-opacity-70">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                {% endif %}
+                
+                <!-- Image Display -->
+                <div class="relative max-w-7xl max-h-full">
+                    <img :src="images[selectedImage].url" 
+                         :alt="images[selectedImage].alt"
+                         class="max-w-full max-h-[90vh] object-contain rounded-lg"
+                         @click.self="closeModal()">
+                    
+                    <!-- Image Counter -->
+                    {% if property_images|length > 1 %}
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg text-sm">
+                        <span x-text="selectedImage + 1"></span> / <span x-text="images.length"></span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% elif property.image %}
+        <!-- Fallback to legacy single image -->
+        <div class="mb-4" x-data="{ showModal: false }">
+            <img src="{{ property.image.url }}" 
+                 alt="{{ property.full_address }}" 
+                 class="w-full h-64 sm:h-96 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                 @click="showModal = true; document.body.style.overflow = 'hidden'">
+            
+            <!-- Image Modal for single image -->
+            <div x-show="showModal" 
+                 x-cloak
+                 @click.self="showModal = false; document.body.style.overflow = ''"
+                 @keydown.escape="showModal = false; document.body.style.overflow = ''"
+                 class="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
+                 style="display: none;">
+                <button @click="showModal = false; document.body.style.overflow = ''" 
+                        class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <img src="{{ property.image.url }}" 
+                     alt="{{ property.full_address }}"
+                     class="max-w-full max-h-[90vh] object-contain rounded-lg">
+            </div>
+        </div>
+        {% endif %}
+        <div class="flex flex-col sm:flex-row justify-between items-start mb-4 gap-3">
+            <div class="flex-1">
+                <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">{{ property.full_address }}</h1>
+                <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        {{ property.get_property_type_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-end gap-2">
+                <!-- Social Sharing Buttons -->
+                <div class="relative flex items-center gap-2" x-data="{ showShareMenu: false, linkCopied: false }">
+                    <button @click="showShareMenu = !showShareMenu" 
+                            class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        Share
+                    </button>
+                    
+                    <!-- Share Menu Dropdown -->
+                    <div x-show="showShareMenu" 
+                         x-cloak
+                         @click.away="showShareMenu = false"
+                         class="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-50"
+                         style="display: none;">
+                        <div class="flex flex-col gap-2 min-w-[200px]">
+                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                </svg>
+                                Facebook
+                            </a>
+                            
+                            <a href="https://twitter.com/intent/tweet?url={{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %}&text=Check out this property: {{ property.full_address|urlencode }}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="flex items-center gap-2 px-3 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                </svg>
+                                Twitter
+                            </a>
+                            
+                            <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="flex items-center gap-2 px-3 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                </svg>
+                                LinkedIn
+                            </a>
+                            
+                            <a href="https://wa.me/?text={{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %} - Check out this property: {{ property.full_address|urlencode }}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               class="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                </svg>
+                                WhatsApp
+                            </a>
+                            
+                            <button @click="navigator.clipboard.writeText('{{ request.scheme }}://{{ request.get_host }}{% url 'reviews:property_detail' property.id %}'); linkCopied = true; setTimeout(() => linkCopied = false, 2000)" 
+                                    class="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm w-full">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                <span x-show="!linkCopied">Copy Link</span>
+                                <span x-show="linkCopied" x-cloak style="display: none;">Copied!</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="{% url 'reviews:all_properties' %}" class="text-gray-600 hover:text-blue-600 text-sm sm:text-base whitespace-nowrap">
+                    ← Back to Properties
+                </a>
+            </div>
+        </div>
+
+        <!-- Property Description -->
+        {% if property.description %}
+        <div class="border-t border-gray-200 pt-4 mt-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Property Description</h2>
+            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ property.description }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Rating Summary -->
+        {% if review_count > 0 %}
+        <div class="border-t border-gray-200 pt-4 mt-4">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                    <div class="text-center">
+                        <div class="text-3xl sm:text-4xl font-bold text-gray-900">{{ avg_rating|floatformat:1 }}</div>
+                        <div class="flex items-center justify-center mt-1">
+                            {% for i in "12345" %}
+                            {% if forloop.counter <= avg_rating|to_int %}
+                            <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            {% else %}
+                            <svg class="w-6 h-6 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-lg font-semibold text-gray-900">{{ review_count }} Review{{ review_count|pluralize }}</div>
+                        <div class="text-sm text-gray-600">Based on verified reviews</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating Distribution -->
+            <div class="mt-6 space-y-2">
+                {% for rating_val, rating_data in rating_dist.items %}
+                <div class="flex items-center gap-3">
+                    <div class="w-20 text-sm text-gray-600">{{ rating_val }} star{{ rating_val|pluralize }}</div>
+                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                        <div class="bg-yellow-400 h-2 rounded-full" style="width: {{ rating_data.percentage|floatformat:0 }}%"></div>
+                    </div>
+                    <div class="w-16 text-sm text-gray-600 text-right">{{ rating_data.count }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="border-t border-gray-200 pt-4 mt-4 text-center py-4">
+            <p class="text-gray-600">No comments yet. Be the first to comment on this property!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Reviews Section -->
+        <div class="lg:col-span-2 order-2 lg:order-1">
+            <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Comments ({{ review_count }})</h2>
+                    <!-- Review Sort Dropdown -->
+                    <div class="flex items-center gap-2">
+                        <label for="reviewSort" class="text-sm font-medium text-gray-700">Sort:</label>
+                        <select id="reviewSort" onchange="sortReviews(this.value)" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                            <option value="newest" {% if review_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="oldest" {% if review_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                            <option value="rating_high" {% if review_sort == 'rating_high' %}selected{% endif %}>Highest Rated</option>
+                            <option value="rating_low" {% if review_sort == 'rating_low' %}selected{% endif %}>Lowest Rated</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <script>
+                    function sortReviews(sortValue) {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('review_sort', sortValue);
+                        window.location.href = url.toString();
+                    }
+
+                    function voteReview(reviewId, voteType) {
+                        {% if not user.is_authenticated %}
+                        alert('Please log in to vote on reviews.');
+                        return;
+                        {% endif %}
+                        
+                        const helpfulBtn = document.getElementById(`helpfulBtn_${reviewId}`);
+                        const notHelpfulBtn = document.getElementById(`notHelpfulBtn_${reviewId}`);
+                        const helpfulCountEl = document.getElementById(`helpfulCount_${reviewId}`);
+                        const notHelpfulCountEl = document.getElementById(`notHelpfulCount_${reviewId}`);
+                        
+                        // Disable buttons during request
+                        helpfulBtn.disabled = true;
+                        notHelpfulBtn.disabled = true;
+                        
+                        fetch(`{% url 'reviews:vote_review_api' 0 %}`.replace('0', reviewId), {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': '{{ csrf_token }}',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `vote_type=${voteType}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update counts
+                                helpfulCountEl.textContent = data.helpful_count;
+                                notHelpfulCountEl.textContent = data.not_helpful_count;
+                                
+                                // Update button styles based on user's vote
+                                if (data.user_vote === 'helpful') {
+                                    helpfulBtn.className = 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-green-100 text-green-700 hover:bg-green-200';
+                                    notHelpfulBtn.className = 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200';
+                                } else if (data.user_vote === 'not_helpful') {
+                                    helpfulBtn.className = 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200';
+                                    notHelpfulBtn.className = 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-red-100 text-red-700 hover:bg-red-200';
+                                } else {
+                                    // No vote
+                                    helpfulBtn.className = 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200';
+                                    notHelpfulBtn.className = 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200';
+                                }
+                            } else {
+                                alert(data.error || 'An error occurred while voting.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while voting. Please try again.');
+                        })
+                        .finally(() => {
+                            // Re-enable buttons
+                            helpfulBtn.disabled = false;
+                            notHelpfulBtn.disabled = false;
+                        });
+                    }
+                </script>
+                
+                {% if reviews_with_replies %}
+                <div class="space-y-4 sm:space-y-6">
+                    {% for item in reviews_with_replies %}
+                    {% with review=item.review replies=item.replies reply_form=item.reply_form %}
+                    <div class="border-b border-gray-200 pb-4 sm:pb-6 last:border-b-0 last:pb-0">
+                        <!-- Header: Title, Rating, and Author Info -->
+                        <div class="mb-3">
+                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+                            <div class="flex-1 min-w-0">
+                                <!-- Title and Edit/Delete Buttons -->
+                               <!-- <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
+                                    <h3 class="text-base sm:text-lg font-semibold text-gray-900 break-words">{{ review.title|default:"Comment" }}</h3>
+                                    
+                                </div> -->
+                                <!-- Rating -->
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="flex items-center">
+                                        {% for i in "12345" %}
+                                        {% if forloop.counter <= review.rating %}
+                                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="text-xs sm:text-sm text-gray-600">{{ review.get_rating_display }}</span>
+                                </div>
+                            </div>
+                            <!-- Author Info (right-aligned on desktop, left on mobile) -->
+                            <div class="text-left sm:text-right flex-shrink-0">
+                                <div class="text-xs sm:text-sm font-medium text-gray-900">
+                                    {% if review.is_anonymous or not review.author_name %}
+                                    Anonymous
+                                    {% else %}
+                                    {{ review.author_name }}
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ review.created_at|date:"M d, Y" }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Date Lived -->
+                        {% if review.date_lived_from or review.date_lived_to %}
+                        <div class="text-xs text-gray-500 mt-2 mb-2">
+                            Lived here: 
+                            {% if review.date_lived_from %}
+                                {{ review.date_lived_from|date:"M Y" }}
+                            {% endif %}
+                            {% if review.date_lived_from and review.date_lived_to %} - {% endif %}
+                            {% if review.date_lived_to %}
+                                {{ review.date_lived_to|date:"M Y" }}
+                            {% elif review.date_lived_from %}
+                                (Present)
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Review Content -->
+                        {% if review.content %}
+                        <div class="mt-3" x-data="{ expanded: false, showButton: false }" x-init="
+                            setTimeout(() => {
+                                const truncated = $refs.truncated;
+                                const full = $refs.full;
+                                if (truncated && full) {
+                                    showButton = full.scrollHeight > truncated.scrollHeight;
+                                }
+                            }, 100);
+                        ">
+                            <p class="text-sm sm:text-base text-gray-700 leading-relaxed line-clamp-2 break-words overflow-hidden" 
+                               x-ref="truncated"
+                               x-show="!expanded">
+                                {{ review.content }}
+                            </p>
+                            <p class="text-sm sm:text-base text-gray-700 leading-relaxed" 
+                               x-ref="full"
+                               style="position: absolute; visibility: hidden; width: 100%; max-width: 100%; word-wrap: break-word;">
+                                {{ review.content }}
+                            </p>
+                            <p class="text-sm sm:text-base text-gray-700 leading-relaxed break-words overflow-hidden" 
+                               x-show="expanded"
+                               x-cloak>
+                                {{ review.content }}
+                            </p>
+                            <button 
+                                @click="expanded = !expanded"
+                                x-show="showButton || expanded"
+                                x-text="expanded ? 'See less' : 'See more'"
+                                class="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                            </button>
+                        </div>
+                        {% endif %}
+                        {% if user.is_authenticated and review.created_by and review.created_by == user %}
+                            <div class="flex gap-2 flex-shrink-0">
+                                <a href="{% url 'reviews:edit_review' review.id %}" class="inline-flex items-center px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    <span class="hidden xs:inline">Edit</span>
+                                </a>
+                                <a href="{% url 'reviews:delete_review' review.id %}" class="inline-flex items-center px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-red-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-red-700 transition-colors" onclick="return confirm('Are you sure you want to delete this review? This action cannot be undone.');">
+                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H4.862a2 2 0 01-1.995-1.858L2 7m5 4v6m4-6v6m4-6v6m4-8V9a2 2 0 00-2-2h-4.586a1 1 0 01-.707-.293l-4.414-4.414A1 1 0 006.586 2H2a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2z"/>
+                                    </svg>
+                                    <span class="hidden xs:inline">Delete</span>
+                                </a>
+                            </div>
+                        {% endif %}
+                        <!-- Helpfulness Voting -->
+                        {% if user.is_authenticated %}
+                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-200">
+                            <div class="flex items-center gap-2">
+                                <button onclick="voteReview({{ review.id }}, 'helpful')" 
+                                        id="helpfulBtn_{{ review.id }}"
+                                        class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if user_vote == 'helpful' %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
+                                    </svg>
+                                    <span>Helpful</span>
+                                    <span id="helpfulCount_{{ review.id }}" class="ml-1">{{ helpful_count }}</span>
+                                </button>
+                                <button onclick="voteReview({{ review.id }}, 'not_helpful')" 
+                                        id="notHelpfulBtn_{{ review.id }}"
+                                        class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if user_vote == 'not_helpful' %}bg-red-100 text-red-700 hover:bg-red-200{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/>
+                                    </svg>
+                                    <span>Not Helpful</span>
+                                    <span id="notHelpfulCount_{{ review.id }}" class="ml-1">{{ not_helpful_count }}</span>
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Pros & Cons -->
+                        {% if review.pros_cons %}
+                        <div class="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gray-50 rounded-lg">
+                            <p class="text-xs sm:text-sm font-medium text-gray-700 mb-1">Pros & Cons:</p>
+                            <p class="text-xs sm:text-sm text-gray-600 whitespace-pre-line break-words">{{ review.pros_cons }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Disclaimer -->
+                        <div class="mt-3 p-2 bg-blue-50 border-l-4 border-blue-400 rounded">
+                            <p class="text-xs text-blue-800">
+                                <strong>Disclaimer:</strong> All reviews are personal opinions of former tenants. We do not verify claims.
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons: Report and Owner Response -->
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <a href="{% url 'reviews:report_review' review.id %}" class="inline-flex items-center px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg hover:bg-orange-200 transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Report
+                            </a>
+                            {% if user.is_authenticated and review.property.created_by == user and not item.owner_response %}
+                            <a href="{% url 'reviews:respond_to_review' review.id %}" class="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200 transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                </svg>
+                                Respond as Owner
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Property Owner Response -->
+                        {% if item.owner_response %}
+                        <div class="mt-4 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg">
+                            <div class="flex items-start justify-between mb-2">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-sm font-semibold text-green-900">Property Owner Response</span>
+                                        <span class="text-xs text-green-700 bg-green-200 px-2 py-0.5 rounded">Official</span>
+                                    </div>
+                                    <div class="text-xs text-green-700">{{ item.owner_response.owner_name }}</div>
+                                    <div class="text-xs text-green-600 mt-0.5">{{ item.owner_response.created_at|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                            <p class="text-sm text-green-900 mt-2 leading-relaxed break-words">{{ item.owner_response.content }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Replies Section -->
+                        <div id="repliesContainer_{{ review.id }}" class="mt-4 ml-2 sm:ml-4 pl-3 sm:pl-4 border-l-2 border-gray-200 space-y-3">
+                            {% if replies %}
+                            {% for reply in replies %}
+                            {% include 'reviews/reply_item.html' with reply=reply review=review depth=0 %}
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- Reply Form -->
+                        {% if user.is_authenticated %}
+                        <div class="mt-4" x-data="{ showReplyForm: false }">
+                            <button @click="showReplyForm = !showReplyForm" type="button" class="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                </svg>
+                                Reply
+                            </button>
+                            
+                            <div x-show="showReplyForm" x-cloak class="mt-3 p-3 bg-gray-50 rounded-lg">
+                                <form id="replyForm_{{ review.id }}" method="post" data-review-id="{{ review.id }}">
+                                    {% csrf_token %}
+                                    
+                                    <div class="mb-3">
+                                        <label for="id_content_reply_{{ review.id }}" class="block text-xs font-medium text-gray-700 mb-1">
+                                            Your Reply * (min. 10 characters)
+                                        </label>
+                                        <textarea name="content" id="id_content_reply_{{ review.id }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" rows="3" placeholder="Write your reply (minimum 10 characters)..."></textarea>
+                                        <div class="mt-1 flex items-center justify-between">
+                                            <div id="replyError_{{ review.id }}" class="text-xs text-red-600 hidden"></div>
+                                            <span id="replyCharCount_{{ review.id }}" class="text-xs font-medium text-gray-500">
+                                                0 / 10 min
+                                            </span>
+                                        </div>
+                                        <script>
+                                            (function() {
+                                                const textarea = document.getElementById('id_content_reply_{{ review.id }}');
+                                                const charCount = document.getElementById('replyCharCount_{{ review.id }}');
+                                                if (textarea && charCount) {
+                                                    const updateCount = () => {
+                                                        const count = textarea.value.length;
+                                                        const minChars = 10;
+                                                        charCount.textContent = count + ' / ' + minChars + ' min';
+                                                        if (count < minChars) {
+                                                            charCount.classList.add('text-red-600');
+                                                            charCount.classList.remove('text-green-600', 'text-gray-500');
+                                                        } else {
+                                                            charCount.classList.add('text-green-600');
+                                                            charCount.classList.remove('text-red-600', 'text-gray-500');
+                                                        }
+                                                    };
+                                                    textarea.addEventListener('input', updateCount);
+                                                    updateCount();
+                                                }
+                                            })();
+                                        </script>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="flex items-center mb-2">
+                                            <input type="checkbox" name="use_real_name" id="use_real_name_reply_{{ review.id }}" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" {% if user.is_authenticated %}checked{% endif %}>
+                                            <label for="use_real_name_reply_{{ review.id }}" class="ml-2 text-xs font-medium text-gray-700">
+                                                Use my name ({{ user.get_full_name|default:user.username }})
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" name="post_as" id="post_as_anonymous_reply_{{ review.id }}" value="anonymous" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" {% if not user.is_authenticated %}checked{% endif %}>
+                                            <label for="post_as_anonymous_reply_{{ review.id }}" class="ml-2 text-xs font-medium text-gray-700">
+                                                Post anonymously
+                                            </label>
+                                        </div>
+                                        <div id="nameFieldReply_{{ review.id }}" class="mt-2 {% if not user.is_authenticated %}hidden{% endif %}">
+                                            <input type="text" name="author_name" id="id_author_name_reply_{{ review.id }}" maxlength="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" placeholder="Your name (optional - leave blank for anonymous)" value="{% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% endif %}">
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <button type="submit" id="submitReply_{{ review.id }}" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <span class="submit-text">Post Reply</span>
+                                            <span class="loading-text hidden">Posting...</span>
+                                        </button>
+                                        <button type="button" @click="showReplyForm = false" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p class="text-xs text-blue-800 mb-2">
+                                You must be logged in to reply to comments.
+                            </p>
+                            <a href="{% url 'reviews:login' %}?next={% url 'reviews:property_detail' property.id %}" class="text-xs text-blue-600 hover:text-blue-700 font-medium underline">
+                                Log in to reply
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-600 text-center py-6 sm:py-8 text-sm sm:text-base">No reviews yet. Be the first to share your experience!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Submit Review Form -->
+        <div class="lg:col-span-1 order-1 lg:order-2">
+            <div class="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:sticky lg:top-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Write a Comment</h2>
+                
+                {% if user.is_authenticated %}
+                <p class="text-sm text-gray-600 mb-4">
+                    Share your experience with this property. All comments are opinion-based and will be visible immediately.
+                </p>
+                <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-xs text-yellow-800">
+                        <strong>⚠️ Safety Notice:</strong> Please ensure your comments are truthful and based on personal experience. Review our <a href="{% url 'reviews:safety_guidelines' %}" class="text-yellow-900 underline font-medium">Safety Guidelines</a> before posting.
+                    </p>
+                </div>
+                
+                <form method="post" action="{% url 'reviews:property_detail' property.id %}">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.rating.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Overall Rating *
+                        </label>
+                        {{ form.rating }}
+                        {% if form.rating.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.rating.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Comment * (min. 50 characters)
+                        </label>
+                        {{ form.content }}
+                        <div class="mt-1 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-gray-500">Share your personal opinion and experience about the property itself</p>
+                                <p class="text-xs text-red-600 font-medium">⚠️ Do not include personal attacks or insults. Focus on the property.</p>
+                            </div>
+                            <div class="text-right">
+                                <span id="charCount" class="text-xs font-medium" x-data="{ count: 0, minChars: 50 }" x-init="$watch('count', value => { if (value < minChars) { $el.classList.add('text-red-600'); $el.classList.remove('text-green-600'); } else { $el.classList.add('text-green-600'); $el.classList.remove('text-red-600'); } })">
+                                    <span x-text="count"></span> / <span x-text="minChars"></span> min
+                                </span>
+                            </div>
+                        </div>
+                        {% if form.content.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                        {% endif %}
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const textarea = document.getElementById('{{ form.content.id_for_label }}');
+                                const charCount = document.getElementById('charCount');
+                                if (textarea && charCount) {
+                                    const updateCount = () => {
+                                        const count = textarea.value.length;
+                                        const minChars = 50;
+                                        const countSpan = charCount.querySelector('span');
+                                        if (countSpan) {
+                                            countSpan.textContent = count;
+                                        }
+                                        if (count < minChars) {
+                                            charCount.classList.add('text-red-600');
+                                            charCount.classList.remove('text-green-600');
+                                        } else {
+                                            charCount.classList.add('text-green-600');
+                                            charCount.classList.remove('text-red-600');
+                                        }
+                                    };
+                                    textarea.addEventListener('input', updateCount);
+                                    updateCount(); // Initial count
+                                }
+                            });
+                        </script>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex items-center mb-3">
+                            <input type="checkbox" name="use_real_name" id="use_real_name_review" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                            <label for="use_real_name_review" class="ml-2 text-sm font-medium text-gray-700">
+                                Use my name ({{ user.get_full_name|default:user.username }})
+                            </label>
+                        </div>
+                        <div id="anonymousOptionReview" class="mb-3">
+                            <input type="checkbox" name="post_as" id="post_as_anonymous_review" value="anonymous" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="post_as_anonymous_review" class="ml-2 text-sm font-medium text-gray-700">
+                                Post anonymously
+                            </label>
+                        </div>
+                        <div id="nameFieldReview" class="mb-3">
+                            <label for="{{ form.author_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Your Name
+                            </label>
+                            {{ form.author_name }}
+                            {% if form.author_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.author_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="submit_review" value="1">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="previewReview()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium">
+                            Preview
+                        </button>
+                        <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
+                            Submit Comment
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Review Preview Modal -->
+                <div id="reviewPreviewModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="closePreview()">
+                    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                        <div class="p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-900">Review Preview</h3>
+                                <button onclick="closePreview()" class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="mb-3">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span id="previewAuthorName" class="text-sm font-medium text-gray-900">Your Name</span>
+                                        <span class="text-xs text-gray-500">•</span>
+                                        <span class="text-xs text-gray-500">Just now</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div id="previewRating" class="flex items-center">
+                                            <!-- Stars will be inserted here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="previewContent" class="text-sm text-gray-700 mb-3">
+                                    <!-- Review content will be inserted here -->
+                                </div>
+                                <div id="previewProsCons" class="mt-3 p-2 bg-gray-50 rounded-lg hidden">
+                                    <p class="text-xs font-medium text-gray-700 mb-1">Pros & Cons:</p>
+                                    <p id="previewProsConsText" class="text-xs text-gray-600 whitespace-pre-line"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 flex gap-2">
+                                <button onclick="closePreview()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium">
+                                    Close
+                                </button>
+                                <button onclick="document.querySelector('form').submit()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                                    Submit Review
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <script>
+                    function previewReview() {
+                        const rating = document.getElementById('{{ form.rating.id_for_label }}').value;
+                        const content = document.getElementById('{{ form.content.id_for_label }}').value;
+                        const prosCons = document.getElementById('{{ form.pros_cons.id_for_label }}').value;
+                        const useRealName = document.getElementById('use_real_name_review').checked;
+                        const postAsAnonymous = document.getElementById('post_as_anonymous_review').checked;
+                        const authorName = document.getElementById('{{ form.author_name.id_for_label }}').value;
+                        
+                        // Set author name
+                        let displayName = 'Anonymous';
+                        if (!postAsAnonymous && useRealName) {
+                            displayName = authorName || '{{ user.get_full_name|default:user.username }}';
+                        }
+                        document.getElementById('previewAuthorName').textContent = displayName;
+                        
+                        // Set rating stars
+                        const ratingContainer = document.getElementById('previewRating');
+                        ratingContainer.innerHTML = '';
+                        for (let i = 1; i <= 5; i++) {
+                            const star = document.createElement('span');
+                            star.className = i <= rating ? 'text-yellow-400' : 'text-gray-300';
+                            star.innerHTML = '★';
+                            ratingContainer.appendChild(star);
+                        }
+                        if (rating) {
+                            const ratingText = document.createElement('span');
+                            ratingText.className = 'ml-2 text-sm text-gray-600';
+                            ratingText.textContent = rating + '/5';
+                            ratingContainer.appendChild(ratingText);
+                        }
+                        
+                        // Set content
+                        document.getElementById('previewContent').textContent = content || 'No content entered yet.';
+                        
+                        // Set pros & cons
+                        const prosConsDiv = document.getElementById('previewProsCons');
+                        const prosConsText = document.getElementById('previewProsConsText');
+                        if (prosCons && prosCons.trim()) {
+                            prosConsText.textContent = prosCons;
+                            prosConsDiv.classList.remove('hidden');
+                        } else {
+                            prosConsDiv.classList.add('hidden');
+                        }
+                        
+                        // Show modal
+                        document.getElementById('reviewPreviewModal').classList.remove('hidden');
+                        document.body.style.overflow = 'hidden';
+                    }
+                    
+                    function closePreview() {
+                        document.getElementById('reviewPreviewModal').classList.add('hidden');
+                        document.body.style.overflow = '';
+                    }
+                    
+                    // Close on Escape key
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape') {
+                            closePreview();
+                        }
+                    });
+                </script>
+                {% else %}
+                <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm text-blue-800 mb-4">
+                        You must be logged in to write a comment. Please log in or create an account to share your experience.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="{% url 'reviews:login' %}?next={% url 'reviews:property_detail' property.id %}" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium text-center">
+                            Log In
+                        </a>
+                        <a href="{% url 'reviews:register' %}?next={% url 'reviews:property_detail' property.id %}" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium text-center">
+                            Sign Up
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle name/anonymous toggle for review form
+        const useRealNameCheckbox = document.getElementById('use_real_name_review');
+        const anonymousCheckbox = document.getElementById('post_as_anonymous_review');
+        const nameField = document.getElementById('nameFieldReview');
+        const anonymousOption = document.getElementById('anonymousOptionReview');
+        const authorNameInput = document.querySelector('input[name="author_name"]');
+
+        function updateNameFields() {
+            if (useRealNameCheckbox && anonymousCheckbox && nameField && anonymousOption) {
+                if (useRealNameCheckbox.checked) {
+                    // Use real name
+                    anonymousCheckbox.checked = false;
+                    nameField.classList.remove('hidden');
+                    if (authorNameInput) {
+                        authorNameInput.value = '{{ user.get_full_name|default:user.username }}';
+                    }
+                } else {
+                    // Post anonymously
+                    anonymousCheckbox.checked = true;
+                    nameField.classList.add('hidden');
+                    if (authorNameInput) {
+                        authorNameInput.value = '';
+                    }
+                }
+            }
+        }
+
+        if (useRealNameCheckbox) {
+            useRealNameCheckbox.addEventListener('change', function() {
+                updateNameFields();
+            });
+        }
+
+        if (anonymousCheckbox) {
+            anonymousCheckbox.addEventListener('change', function() {
+                if (anonymousCheckbox.checked) {
+                    useRealNameCheckbox.checked = false;
+                    updateNameFields();
+                } else {
+                    // If unchecking anonymous, check use real name
+                    useRealNameCheckbox.checked = true;
+                    updateNameFields();
+                }
+            });
+        }
+
+            // Initialize on page load
+            updateNameFields();
+        });
+
+        // Handle reply form name/anonymous toggles for all reply forms
+        document.querySelectorAll('[id^="use_real_name_reply_"]').forEach(function(checkbox) {
+            const reviewId = checkbox.id.replace('use_real_name_reply_', '');
+            const anonymousCheckbox = document.getElementById('post_as_anonymous_reply_' + reviewId);
+            const nameField = document.getElementById('nameFieldReply_' + reviewId);
+            const authorNameInput = document.getElementById('id_author_name_reply_' + reviewId);
+            const userFullName = "{{ user.get_full_name|default:user.username }}";
+
+            function updateReplyNameFields() {
+                if (checkbox.checked) {
+                    if (anonymousCheckbox) anonymousCheckbox.checked = false;
+                    if (nameField) nameField.classList.remove('hidden');
+                    if (authorNameInput) authorNameInput.value = userFullName;
+                } else {
+                    if (anonymousCheckbox) anonymousCheckbox.checked = true;
+                    if (nameField) nameField.classList.add('hidden');
+                    if (authorNameInput) authorNameInput.value = '';
+                }
+            }
+
+            checkbox.addEventListener('change', updateReplyNameFields);
+            if (anonymousCheckbox) {
+                anonymousCheckbox.addEventListener('change', function() {
+                    if (anonymousCheckbox.checked) {
+                        checkbox.checked = false;
+                        updateReplyNameFields();
+                    } else {
+                        checkbox.checked = true;
+                        updateReplyNameFields();
+                    }
+                });
+            }
+        });
+
+        // Handle AJAX reply submission for all reply forms (including nested)
+        document.querySelectorAll('[id^="replyForm_"], [id^="nestedReplyForm_"]').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const reviewId = form.dataset.reviewId;
+                const parentReplyId = form.dataset.parentReplyId; // For nested replies
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const submitText = submitBtn ? submitBtn.querySelector('.submit-text') : null;
+                const loadingText = submitBtn ? submitBtn.querySelector('.loading-text') : null;
+                const errorDivId = form.id.includes('nested') ? 'nestedReplyError_' + parentReplyId : 'replyError_' + reviewId;
+                const errorDiv = document.getElementById(errorDivId);
+                const repliesContainer = document.getElementById('repliesContainer_' + reviewId);
+                
+                // Get form data
+                const formData = new FormData(form);
+                formData.append('review_id', reviewId);
+                if (parentReplyId) {
+                    formData.append('parent_reply_id', parentReplyId);
+                }
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+                // Disable submit button and show loading
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    if (submitText) submitText.classList.add('hidden');
+                    if (loadingText) loadingText.classList.remove('hidden');
+                }
+                if (errorDiv) {
+                    errorDiv.classList.add('hidden');
+                    errorDiv.textContent = '';
+                }
+                
+                // Submit via AJAX
+                fetch('{% url "reviews:submit_reply_api" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.status === 401) {
+                        // Unauthorized - user not logged in
+                        return response.json().then(data => {
+                            alert(data.error || 'You must be logged in to post a reply.');
+                            window.location.href = '{% url "reviews:login" %}?next=' + encodeURIComponent(window.location.href);
+                            throw new Error('Unauthorized');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data || data.error) {
+                        if (errorDiv) {
+                            errorDiv.textContent = data.error || 'An error occurred. Please try again.';
+                            errorDiv.classList.remove('hidden');
+                        }
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            if (submitText) submitText.classList.remove('hidden');
+                            if (loadingText) loadingText.classList.add('hidden');
+                        }
+                        return;
+                    }
+                    if (data.success) {
+                        // Determine where to insert the reply
+                        let targetContainer = repliesContainer;
+                        
+                        if (data.reply.parent_reply_id) {
+                            // This is a nested reply - find parent reply container
+                            const parentReply = document.getElementById(`reply_${data.reply.parent_reply_id}`);
+                            if (parentReply) {
+                                // Find or create nested replies container
+                                let nestedContainer = parentReply.querySelector('.nested-replies-container');
+                                if (!nestedContainer) {
+                                    nestedContainer = document.createElement('div');
+                                    nestedContainer.className = 'mt-2 ml-2 sm:ml-4 pl-2 sm:pl-4 border-l-2 border-gray-200 space-y-2 nested-replies-container';
+                                    parentReply.appendChild(nestedContainer);
+                                }
+                                targetContainer = nestedContainer;
+                            }
+                        }
+                        
+                        // Create new reply element
+                        const isNested = data.reply.parent_reply_id ? true : false;
+                        const marginLeft = isNested ? '20px' : '0px';
+                        const replyHtml = `
+                            <div class="py-2 reply-item" data-reply-id="${data.reply.id}" id="reply_${data.reply.id}" style="margin-left: ${marginLeft};">
+                                <div class="flex items-start justify-between mb-1">
+                                    <div class="flex-1">
+                                        <div class="text-xs sm:text-sm font-medium text-gray-900">
+                                            ${data.reply.author_name}
+                                        </div>
+                                        <div class="text-xs text-gray-500">${data.reply.created_at}</div>
+                                    </div>
+                                    <div class="flex gap-1 ml-2">
+                                        <button onclick="editReply(${data.reply.id})" class="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700">
+                                            Edit
+                                        </button>
+                                        <button onclick="deleteReply(${data.reply.id})" class="px-2 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="replyContent_${data.reply.id}" x-data="{ expanded: false, showButton: false }" x-init="
+                                    setTimeout(() => {
+                                        const truncated = $refs.truncated;
+                                        const full = $refs.full;
+                                        if (truncated && full) {
+                                            showButton = full.scrollHeight > truncated.scrollHeight;
+                                        }
+                                    }, 100);
+                                ">
+                                    <p class="text-xs sm:text-sm text-gray-700 mt-1 line-clamp-2 break-words overflow-hidden" 
+                                       x-ref="truncated"
+                                       x-show="!expanded">
+                                        ${data.reply.content}
+                                    </p>
+                                    <p class="text-xs sm:text-sm text-gray-700 mt-1" 
+                                       x-ref="full"
+                                       style="position: absolute; visibility: hidden; width: 100%; max-width: 100%; word-wrap: break-word;">
+                                        ${data.reply.content}
+                                    </p>
+                                    <p class="text-xs sm:text-sm text-gray-700 mt-1 break-words overflow-hidden" 
+                                       x-show="expanded"
+                                       x-cloak>
+                                        ${data.reply.content}
+                                    </p>
+                                    <button 
+                                        @click="expanded = !expanded"
+                                        x-show="showButton || expanded"
+                                        x-text="expanded ? 'See less' : 'See more'"
+                                        class="mt-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                                    </button>
+                                </div>
+                                <div id="editReplyForm_${data.reply.id}" class="hidden mt-2 p-2 bg-gray-50 rounded-lg">
+                                    <form id="replyEditForm_${data.reply.id}" data-reply-id="${data.reply.id}">
+                                        <textarea name="content" id="editContent_${data.reply.id}" required class="w-full px-2 py-1 border border-gray-300 rounded text-xs" rows="3">${data.reply.content}</textarea>
+                                        <div class="mt-2 flex gap-2">
+                                            <button type="submit" class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                                                Save
+                                            </button>
+                                            <button type="button" onclick="cancelEditReply(${data.reply.id})" class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="mt-2" x-data="{ showNestedReplyForm_${data.reply.id}: false }">
+                                    <button @click="showNestedReplyForm_${data.reply.id} = !showNestedReplyForm_${data.reply.id}" type="button" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                        </svg>
+                                        Reply
+                                    </button>
+                                    <div x-show="showNestedReplyForm_${data.reply.id}" x-cloak class="mt-2 p-2 bg-gray-50 rounded-lg">
+                                        <form id="nestedReplyForm_${data.reply.id}" data-review-id="${reviewId}" data-parent-reply-id="${data.reply.id}">
+                                            <textarea name="content" id="id_content_nested_reply_${data.reply.id}" required class="w-full px-2 py-1 border border-gray-300 rounded text-xs" rows="2" placeholder="Write your reply (minimum 10 characters)..."></textarea>
+                                            <div class="mt-2 flex gap-2">
+                                                <button type="submit" class="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700">Post Reply</button>
+                                                <button type="button" @click="showNestedReplyForm_${data.reply.id} = false" class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded hover:bg-gray-300">Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add reply to container
+                        targetContainer.insertAdjacentHTML('beforeend', replyHtml);
+                        
+                        // Re-initialize Alpine.js for the new element if available
+                        if (window.Alpine && targetContainer.lastElementChild) {
+                            try {
+                                window.Alpine.initTree(targetContainer.lastElementChild);
+                            } catch(e) {
+                                console.log('Alpine initialization skipped');
+                            }
+                        }
+                        
+                        // Clear form
+                        form.reset();
+                        
+                        // Hide reply form using Alpine.js
+                        const replyFormContainer = form.closest('[x-data]');
+                        if (replyFormContainer) {
+                            // Try to access Alpine data
+                            if (window.Alpine && replyFormContainer._x_dataStack) {
+                                const dataKey = form.id.includes('nested') ? `showNestedReplyForm_${parentReplyId || ''}` : 'showReplyForm';
+                                if (replyFormContainer._x_dataStack[0][dataKey] !== undefined) {
+                                    replyFormContainer._x_dataStack[0][dataKey] = false;
+                                }
+                            } else if (replyFormContainer.__x) {
+                                const dataKey = form.id.includes('nested') ? `showNestedReplyForm_${parentReplyId || ''}` : 'showReplyForm';
+                                if (replyFormContainer.__x.$data[dataKey] !== undefined) {
+                                    replyFormContainer.__x.$data[dataKey] = false;
+                                }
+                            } else {
+                                // Fallback: hide manually
+                                const replyFormDiv = form.closest('[x-show]');
+                                if (replyFormDiv) {
+                                    replyFormDiv.style.display = 'none';
+                                }
+                            }
+                        }
+                        
+                        // Show success message (optional)
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'mt-2 p-2 bg-green-100 text-green-800 text-xs rounded';
+                        successMsg.textContent = data.message;
+                        form.parentNode.insertBefore(successMsg, form);
+                        setTimeout(() => successMsg.remove(), 3000);
+                    } else {
+                        // Show error
+                        errorDiv.textContent = data.error || 'An error occurred. Please try again.';
+                        errorDiv.classList.remove('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    errorDiv.textContent = 'An error occurred. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                })
+                .finally(() => {
+                    // Re-enable submit button
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        if (submitText) submitText.classList.remove('hidden');
+                        if (loadingText) loadingText.classList.add('hidden');
+                    }
+                });
+            });
+        });
+
+        // Edit Reply Function
+        function editReply(replyId) {
+            const replyContent = document.getElementById('replyContent_' + replyId);
+            const editForm = document.getElementById('editReplyForm_' + replyId);
+            const editTextarea = document.getElementById('editContent_' + replyId);
+            
+            if (replyContent && editForm) {
+                replyContent.classList.add('hidden');
+                editForm.classList.remove('hidden');
+                if (editTextarea) {
+                    editTextarea.focus();
+                }
+            }
+        }
+
+        // Cancel Edit Reply
+        function cancelEditReply(replyId) {
+            const replyContent = document.getElementById('replyContent_' + replyId);
+            const editForm = document.getElementById('editReplyForm_' + replyId);
+            
+            if (replyContent && editForm) {
+                replyContent.classList.remove('hidden');
+                editForm.classList.add('hidden');
+            }
+        }
+
+        // Handle Edit Reply Form Submission
+        document.querySelectorAll('[id^="replyEditForm_"]').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const replyId = form.dataset.replyId;
+                const content = document.getElementById('editContent_' + replyId).value;
+                
+                if (!content || content.trim().length < 10) {
+                    alert('Reply must be at least 10 characters.');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('content', content);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                formData.append('use_real_name', 'on'); // Keep current name settings
+                
+                fetch('{% url "reviews:edit_reply_api" 0 %}'.replace('0', replyId), {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update reply content
+                        const replyContentDiv = document.getElementById('replyContent_' + replyId);
+                        replyContentDiv.setAttribute('x-data', '{ expanded: false, showButton: false }');
+                        replyContentDiv.setAttribute('x-init', `
+                            setTimeout(() => {
+                                const truncated = $refs.truncated;
+                                const full = $refs.full;
+                                if (truncated && full) {
+                                    showButton = full.scrollHeight > truncated.scrollHeight;
+                                }
+                            }, 100);
+                        `);
+                        replyContentDiv.innerHTML = `
+                            <p class="text-xs sm:text-sm text-gray-700 mt-1 line-clamp-2 break-words overflow-hidden" 
+                               x-ref="truncated"
+                               x-show="!expanded">
+                                ${data.reply.content}
+                            </p>
+                            <p class="text-xs sm:text-sm text-gray-700 mt-1" 
+                               x-ref="full"
+                               style="position: absolute; visibility: hidden; width: 100%; max-width: 100%; word-wrap: break-word;">
+                                ${data.reply.content}
+                            </p>
+                            <p class="text-xs sm:text-sm text-gray-700 mt-1 break-words overflow-hidden" 
+                               x-show="expanded"
+                               x-cloak>
+                                ${data.reply.content}
+                            </p>
+                            <button 
+                                @click="expanded = !expanded"
+                                x-show="showButton || expanded"
+                                x-text="expanded ? 'See less' : 'See more'"
+                                class="mt-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                            </button>
+                        `;
+                        // Re-initialize Alpine.js for the updated content
+                        if (window.Alpine) {
+                            Alpine.initTree(replyContentDiv);
+                        }
+                        
+                        // Hide edit form and show content
+                        cancelEditReply(replyId);
+                        
+                        // Show success message
+                        const successMsg = document.createElement('div');
+                        successMsg.className = 'mt-2 p-2 bg-green-100 text-green-800 text-xs rounded';
+                        successMsg.textContent = data.message;
+                        const replyItem = document.getElementById('reply_' + replyId);
+                        replyItem.insertBefore(successMsg, replyItem.firstChild);
+                        setTimeout(() => successMsg.remove(), 3000);
+                    } else {
+                        alert(data.error || 'An error occurred. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            });
+        });
+
+        // Delete Reply Function
+        function deleteReply(replyId) {
+            if (!confirm('Are you sure you want to delete this reply? This action cannot be undone.')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            fetch('{% url "reviews:delete_reply_api" 0 %}'.replace('0', replyId), {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove reply from DOM
+                    const replyItem = document.getElementById('reply_' + replyId);
+                    if (replyItem) {
+                        replyItem.style.transition = 'opacity 0.3s';
+                        replyItem.style.opacity = '0';
+                        setTimeout(() => {
+                            replyItem.remove();
+                        }, 300);
+                    }
+                } else {
+                    alert(data.error || 'An error occurred. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    </script>
+    {% endblock %}
+

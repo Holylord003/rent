@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Flagged Reviews - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Flagged Reviews</h1>
+            <p class="text-gray-600">Review and moderate flagged content</p>
+        </div>
+        <a href="{% url 'reviews:staff_dashboard' %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    {% if flagged_reviews %}
+    <div class="space-y-4">
+        {% for review in flagged_reviews %}
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-400">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <a href="{% url 'reviews:property_detail' review.property.id %}" class="hover:text-blue-600">
+                                Review for {{ review.property.full_address }}
+                            </a>
+                        </h3>
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">Flagged</span>
+                    </div>
+                    {% if review.flagged_reason %}
+                    <div class="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                        <p class="text-sm text-yellow-800"><strong>Reason:</strong> {{ review.flagged_reason }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm font-medium text-gray-700">Rating: </span>
+                    <span class="text-yellow-600">{% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+                </div>
+                <p class="text-gray-900 mb-2">{{ review.content }}</p>
+                {% if review.pros_cons %}
+                <div class="mt-2 p-2 bg-white rounded">
+                    <p class="text-xs font-medium text-gray-700 mb-1">Pros & Cons:</p>
+                    <p class="text-xs text-gray-600 whitespace-pre-line">{{ review.pros_cons }}</p>
+                </div>
+                {% endif %}
+                <div class="mt-2 text-xs text-gray-600">
+                    By: {% if review.is_anonymous %}Anonymous{% else %}{{ review.author_name }}{% endif %} • 
+                    {{ review.created_at|date:"M d, Y" }}
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'reviews:staff_review_action' review.id %}" class="flex flex-wrap gap-2">
+                {% csrf_token %}
+                {% if not review.is_approved %}
+                <button type="submit" name="action" value="approve" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
+                    Approve & Unflag
+                </button>
+                {% endif %}
+                <button type="submit" name="action" value="unflag" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                    Unflag Only
+                </button>
+                {% if review.is_approved %}
+                <button type="submit" name="action" value="reject" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium">
+                    Reject Review
+                </button>
+                {% endif %}
+                <button type="submit" name="action" value="delete" onclick="return confirm('Are you sure you want to delete this review? This action cannot be undone.');" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">
+                    Delete Review
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-12 text-center">
+        <p class="text-gray-600 text-lg">No flagged reviews at this time.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

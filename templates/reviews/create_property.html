@@ -1,0 +1,479 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Property - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Add a New Property</h1>
+            <div class="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-xs text-yellow-800">
+                    <strong>⚠️ Important:</strong> Only post properties you have personally experienced or have permission to list. Ensure all information is accurate. Review our <a href="{% url 'reviews:safety_guidelines' %}" class="text-yellow-900 underline font-medium">Safety Guidelines</a> and <a href="{% url 'reviews:terms_of_service' %}" class="text-yellow-900 underline font-medium">Terms of Service</a> before posting.
+                </p>
+            </div>
+        
+        <form method="post" action="{% url 'reviews:create_property' %}" id="propertyForm">
+            {% csrf_token %}
+            
+            <!-- Hidden input to store Cloudinary public IDs -->
+            <input type="hidden" name="cloudinary_public_ids" id="cloudinary_public_ids" value="">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Property Images (Optional - Maximum 6)
+                    </label>
+                    <input type="file" 
+                           name="images" 
+                           id="property_images"
+                           multiple 
+                           accept="image/*"
+                           class="hidden">
+                    <p class="mb-3 text-xs text-gray-500">Upload up to 6 photos of the property (JPG, PNG, etc.)</p>
+                    <div id="imagePreviews" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <!-- Image previews and add button will be inserted here -->
+                    </div>
+                    <p id="imageCount" class="mt-2 text-xs text-gray-600"></p>
+                </div>
+
+                <div>
+                    <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Street Address *
+                    </label>
+                    {{ form.address }}
+                    {% if form.address.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.address.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            City *
+                        </label>
+                        {{ form.city }}
+                        {% if form.city.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.city.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.state.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            State *
+                        </label>
+                        {{ form.state }}
+                        {% if form.state.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.state.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.zip_code.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Zip Code *
+                        </label>
+                        {{ form.zip_code }}
+                        {% if form.zip_code.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.zip_code.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.property_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Property Type *
+                        </label>
+                        {{ form.property_type }}
+                        {% if form.property_type.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.property_type.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Property Description
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Describe what happened at this property. Minimum 50 characters if provided.</p>
+                </div>
+            </div>
+
+            <!-- Review Section (Optional) -->
+            <div class="mt-8 pt-8 border-t border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Additional Review Details (Optional)</h2>
+                <p class="text-sm text-gray-600 mb-4">You can add additional review details now, or add them later. All fields below are optional.</p>
+                
+                <div class="space-y-4">
+
+                    <div>
+                        <label for="{{ form.rating.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Rating (1-5)
+                        </label>
+                        {{ form.rating }}
+                        {% if form.rating.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.rating.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.pros_cons.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Pros & Cons (Optional)
+                        </label>
+                        {{ form.pros_cons }}
+                        {% if form.pros_cons.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.pros_cons.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">e.g., Pros: Great location, Cons: Noisy neighbors</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.date_lived_from.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Date Lived From (Optional)
+                            </label>
+                            {{ form.date_lived_from }}
+                            {% if form.date_lived_from.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.date_lived_from.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.date_lived_to.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Date Lived To (Optional)
+                            </label>
+                            {{ form.date_lived_to }}
+                            {% if form.date_lived_to.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.date_lived_to.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">Leave blank if still living there</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center mb-3">
+                            <input type="checkbox" name="use_real_name" id="use_real_name" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
+                            <label for="use_real_name" class="ml-2 text-sm font-medium text-gray-700">
+                                Use my name ({{ user.get_full_name|default:user.username }})
+                            </label>
+                        </div>
+                        <div id="anonymousOption" class="mb-3">
+                            <input type="checkbox" name="post_as" id="post_as_anonymous" value="anonymous" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="post_as_anonymous" class="ml-2 text-sm font-medium text-gray-700">
+                                Post anonymously
+                            </label>
+                        </div>
+                        <div id="nameField" class="mb-3">
+                            <label for="{{ form.author_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Your Name
+                            </label>
+                            {{ form.author_name }}
+                            {% if form.author_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.author_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="mt-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
+                    Add Property
+                </button>
+                    <a href="{% url 'reviews:all_properties' %}" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-center font-medium">
+                        Cancel
+                    </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cloudinary upload configuration
+        let cloudinaryConfig = null;
+        let uploadedImages = []; // Store {public_id, url, index}
+        const maxImages = 6;
+        const imagesInput = document.getElementById('property_images');
+        const imagePreviews = document.getElementById('imagePreviews');
+        const imageCount = document.getElementById('imageCount');
+        const cloudinaryPublicIdsInput = document.getElementById('cloudinary_public_ids');
+        const propertyForm = document.getElementById('propertyForm');
+
+        // Fetch Cloudinary upload signature
+        async function getCloudinarySignature() {
+            try {
+                const response = await fetch('{% url "reviews:get_cloudinary_upload_signature" %}', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                if (response.ok) {
+                    cloudinaryConfig = await response.json();
+                } else {
+                    console.error('Failed to get Cloudinary signature');
+                }
+            } catch (error) {
+                console.error('Error fetching Cloudinary signature:', error);
+            }
+        }
+
+        // Upload image directly to Cloudinary
+        async function uploadToCloudinary(file, index) {
+            if (!cloudinaryConfig) {
+                await getCloudinarySignature();
+            }
+
+            if (!cloudinaryConfig || cloudinaryConfig.error) {
+                throw new Error('Cloudinary not configured');
+            }
+
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('api_key', cloudinaryConfig.api_key);
+                formData.append('timestamp', cloudinaryConfig.timestamp);
+                formData.append('signature', cloudinaryConfig.signature);
+                formData.append('folder', cloudinaryConfig.folder);
+
+                const xhr = new XMLHttpRequest();
+
+                // Track upload progress
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        updateProgressBar(index, percentComplete);
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            resolve({
+                                public_id: response.public_id,
+                                url: response.secure_url || response.url,
+                                index: index
+                            });
+                        } catch (e) {
+                            reject(new Error('Invalid response from Cloudinary'));
+                        }
+                    } else {
+                        reject(new Error(`Upload failed: ${xhr.statusText}`));
+                    }
+                });
+
+                xhr.addEventListener('error', function() {
+                    reject(new Error('Network error during upload'));
+                });
+
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloud_name}/image/upload`);
+                xhr.send(formData);
+            });
+        }
+
+        // Update progress bar
+        function updateProgressBar(index, percent) {
+            const progressBar = document.getElementById(`progress-${index}`);
+            const progressFill = document.getElementById(`progress-fill-${index}`);
+            if (progressBar && progressFill) {
+                progressFill.style.width = `${percent}%`;
+                if (percent >= 100) {
+                    setTimeout(() => {
+                        progressBar.classList.add('hidden');
+                    }, 500);
+                }
+            }
+        }
+
+        // Render image previews with progress bars
+        function renderPreviews() {
+            imagePreviews.innerHTML = '';
+            
+            uploadedImages.forEach((img, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative group';
+                div.innerHTML = `
+                    <div class="relative">
+                        <img src="${img.url}" 
+                             alt="Preview ${index + 1}" 
+                             class="w-full h-32 sm:h-40 object-cover rounded-lg border border-gray-300">
+                        <div id="progress-${index}" class="absolute bottom-0 left-0 right-0 bg-gray-200 rounded-b-lg h-1">
+                            <div id="progress-fill-${index}" class="bg-blue-600 h-1 rounded-b-lg transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <button type="button" 
+                                class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm hover:bg-red-700 transition-colors shadow-lg"
+                                onclick="removeImage(${index})"
+                                title="Remove image">
+                            ×
+                        </button>
+                    </div>
+                `;
+                imagePreviews.appendChild(div);
+            });
+
+            // Add + button if we haven't reached max
+            if (uploadedImages.length < maxImages) {
+                addPlusButton();
+            }
+
+            // Update count text
+            if (uploadedImages.length > 0) {
+                imageCount.textContent = `${uploadedImages.length} of ${maxImages} images selected`;
+                imageCount.classList.remove('hidden');
+            } else {
+                imageCount.classList.add('hidden');
+            }
+
+            // Update hidden input with public IDs (only include successfully uploaded images)
+            const publicIds = uploadedImages
+                .filter(img => img.public_id !== null)
+                .map(img => img.public_id)
+                .join(',');
+            cloudinaryPublicIdsInput.value = publicIds;
+        }
+
+        function addPlusButton() {
+            const plusButton = document.createElement('button');
+            plusButton.type = 'button';
+            plusButton.className = 'w-full h-32 sm:h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer group';
+            plusButton.innerHTML = `
+                <svg class="w-8 h-8 text-gray-400 group-hover:text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span class="text-xs text-gray-500 group-hover:text-blue-600 font-medium">Add Image</span>
+            `;
+            plusButton.onclick = function() {
+                imagesInput.click();
+            };
+            imagePreviews.appendChild(plusButton);
+        }
+
+        // Handle file selection
+        if (imagesInput) {
+            imagesInput.addEventListener('change', async function(e) {
+                const newFiles = Array.from(e.target.files);
+                const remainingSlots = maxImages - uploadedImages.length;
+                
+                if (remainingSlots <= 0) {
+                    alert(`Maximum ${maxImages} images allowed.`);
+                    e.target.value = '';
+                    return;
+                }
+                
+                const filesToAdd = newFiles.slice(0, remainingSlots);
+                
+                if (newFiles.length > remainingSlots) {
+                    alert(`Only ${remainingSlots} more image${remainingSlots > 1 ? 's' : ''} can be added. Maximum ${maxImages} images allowed.`);
+                }
+
+                // Upload each file to Cloudinary
+                for (let i = 0; i < filesToAdd.length; i++) {
+                    const file = filesToAdd[i];
+                    const index = uploadedImages.length;
+                    
+                    // Add placeholder for upload
+                    uploadedImages.push({
+                        public_id: null,
+                        url: URL.createObjectURL(file), // Temporary preview
+                        index: index
+                    });
+                    renderPreviews();
+
+                    try {
+                        const result = await uploadToCloudinary(file, index);
+                        uploadedImages[index] = result;
+                        renderPreviews();
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        alert(`Failed to upload image ${i + 1}: ${error.message}`);
+                        uploadedImages.splice(index, 1);
+                        renderPreviews();
+                    }
+                }
+
+                e.target.value = '';
+            });
+        }
+
+        window.removeImage = function(index) {
+            uploadedImages.splice(index, 1);
+            renderPreviews();
+        }
+
+        // Initial render
+        renderPreviews();
+
+        // Handle name/anonymous toggle
+        const useRealNameCheckbox = document.getElementById('use_real_name');
+        const anonymousCheckbox = document.getElementById('post_as_anonymous');
+        const nameField = document.getElementById('nameField');
+        const anonymousOption = document.getElementById('anonymousOption');
+        const authorNameInput = document.querySelector('input[name="author_name"]');
+
+        function updateNameFields() {
+            if (useRealNameCheckbox && anonymousCheckbox && nameField && anonymousOption) {
+                if (useRealNameCheckbox.checked) {
+                    anonymousCheckbox.checked = false;
+                    nameField.classList.remove('hidden');
+                    if (authorNameInput) {
+                        authorNameInput.value = '{{ user.get_full_name|default:user.username }}';
+                    }
+                } else {
+                    anonymousCheckbox.checked = true;
+                    nameField.classList.add('hidden');
+                    if (authorNameInput) {
+                        authorNameInput.value = '';
+                    }
+                }
+            }
+        }
+
+        if (useRealNameCheckbox) {
+            useRealNameCheckbox.addEventListener('change', function() {
+                updateNameFields();
+            });
+        }
+
+        if (anonymousCheckbox) {
+            anonymousCheckbox.addEventListener('change', function() {
+                if (anonymousCheckbox.checked) {
+                    useRealNameCheckbox.checked = false;
+                    updateNameFields();
+                } else {
+                    useRealNameCheckbox.checked = true;
+                    updateNameFields();
+                }
+            });
+        }
+
+        // Initialize on page load
+        updateNameFields();
+        
+        // Pre-fetch Cloudinary signature
+        getCloudinarySignature();
+
+        // Prevent form submission if images are still uploading
+        if (propertyForm) {
+            propertyForm.addEventListener('submit', function(e) {
+                const uploadingImages = uploadedImages.some(img => img.public_id === null);
+                if (uploadingImages) {
+                    e.preventDefault();
+                    alert('Please wait for all images to finish uploading before submitting.');
+                    return false;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

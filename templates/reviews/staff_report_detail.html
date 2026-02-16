@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Detail - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'reviews:staff_reports' %}" class="text-blue-600 hover:text-blue-700 font-medium">← Back to Reports</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-bold text-gray-900">Report #{{ report.id }}</h1>
+            {% if report.is_resolved %}
+                <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Resolved</span>
+            {% else %}
+                <span class="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">Unresolved</span>
+            {% endif %}
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-1">Reason</h3>
+                <p class="text-gray-900">{{ report.get_reason_display }}</p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-1">Description</h3>
+                <p class="text-gray-900 whitespace-pre-line">{{ report.description }}</p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-1">Reported By</h3>
+                <p class="text-gray-900">
+                    {% if report.reported_by %}
+                        {{ report.reported_by.username }} ({{ report.reported_by.email }})
+                    {% else %}
+                        Anonymous
+                    {% endif %}
+                </p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-1">Reported On</h3>
+                <p class="text-gray-900">{{ report.created_at|date:"F d, Y g:i A" }}</p>
+            </div>
+
+            {% if report.is_resolved %}
+            <div>
+                <h3 class="text-sm font-medium text-gray-700 mb-1">Resolved By</h3>
+                <p class="text-gray-900">{{ report.resolved_by.username }} on {{ report.resolved_at|date:"F d, Y g:i A" }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Review Details -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Reported Review</h2>
+        <div class="mb-4">
+            <a href="{% url 'reviews:property_detail' report.review.property.id %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                View Property: {{ report.review.property.full_address }}
+            </a>
+        </div>
+        <div class="border-l-4 border-gray-300 pl-4">
+            <div class="mb-2">
+                <span class="text-sm font-medium text-gray-700">Rating: </span>
+                <span class="text-yellow-600">{% for i in "12345" %}{% if forloop.counter <= report.review.rating %}★{% else %}☆{% endif %}{% endfor %}</span>
+            </div>
+            <p class="text-gray-900 mb-2">{{ report.review.content }}</p>
+            <div class="text-sm text-gray-600">
+                By: {% if report.review.is_anonymous %}Anonymous{% else %}{{ report.review.author_name }}{% endif %} • 
+                {{ report.review.created_at|date:"M d, Y" }}
+            </div>
+            {% if report.review.is_flagged %}
+            <div class="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                <p class="text-xs text-yellow-800"><strong>Flagged:</strong> {{ report.review.flagged_reason }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Actions</h2>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% if not report.is_resolved %}
+                <button type="submit" name="action" value="resolve" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                    Mark as Resolved
+                </button>
+                {% else %}
+                <button type="submit" name="action" value="unresolve" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium">
+                    Mark as Unresolved
+                </button>
+                {% endif %}
+                
+                {% if report.review.is_flagged %}
+                <button type="submit" name="action" value="unflag_review" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                    Unflag Review
+                </button>
+                {% endif %}
+                
+                <button type="submit" name="action" value="delete_review" onclick="return confirm('Are you sure you want to delete this review? This action cannot be undone.');" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+                    Delete Review
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

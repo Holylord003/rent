@@ -1,0 +1,169 @@
+{% load review_filters %}
+<div class="py-2 reply-item" data-reply-id="{{ reply.id }}" id="reply_{{ reply.id }}" style="margin-left: {% widthratio depth 1 20 %}px;">
+    <div class="flex items-start justify-between mb-1">
+        <div class="flex-1">
+            <div class="text-xs sm:text-sm font-medium text-gray-900">
+                {% if reply.is_anonymous or not reply.author_name %}
+                Anonymous
+                {% else %}
+                {{ reply.author_name }}
+                {% endif %}
+            </div>
+            <div class="text-xs text-gray-500">{{ reply.created_at|date:"M d, Y" }}</div>
+        </div>
+        {% if user.is_authenticated and reply.created_by and reply.created_by == user %}
+        <div class="flex gap-1 ml-2">
+            <button onclick="editReply({{ reply.id }})" class="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700">
+                Edit
+            </button>
+            <button onclick="deleteReply({{ reply.id }})" class="px-2 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700">
+                Delete
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div id="replyContent_{{ reply.id }}" x-data="{ expanded: false, showButton: false }" x-init="
+        setTimeout(() => {
+            const truncated = $refs.truncated_{{ reply.id }};
+            const full = $refs.full_{{ reply.id }};
+            if (truncated && full) {
+                showButton = full.scrollHeight > truncated.scrollHeight;
+            }
+        }, 100);
+    ">
+        <p class="text-xs sm:text-sm text-gray-700 mt-1 line-clamp-2 break-words overflow-hidden" 
+           x-ref="truncated_{{ reply.id }}"
+           x-show="!expanded">
+            {{ reply.content }}
+        </p>
+        <p class="text-xs sm:text-sm text-gray-700 mt-1" 
+           x-ref="full_{{ reply.id }}"
+           style="position: absolute; visibility: hidden; width: 100%; max-width: 100%; word-wrap: break-word;">
+            {{ reply.content }}
+        </p>
+        <p class="text-xs sm:text-sm text-gray-700 mt-1 break-words overflow-hidden" 
+           x-show="expanded"
+           x-cloak>
+            {{ reply.content }}
+        </p>
+        <button 
+            @click="expanded = !expanded"
+            x-show="showButton || expanded"
+            x-text="expanded ? 'See less' : 'See more'"
+            class="mt-1 text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors">
+        </button>
+    </div>
+    
+    <!-- Edit Form (hidden by default) -->
+    <div id="editReplyForm_{{ reply.id }}" class="hidden mt-2 p-2 bg-gray-50 rounded-lg">
+        <form id="replyEditForm_{{ reply.id }}" data-reply-id="{{ reply.id }}">
+            {% csrf_token %}
+            <textarea name="content" id="editContent_{{ reply.id }}" required class="w-full px-2 py-1 border border-gray-300 rounded text-xs" rows="3">{{ reply.content }}</textarea>
+            <div class="mt-2 flex gap-2">
+                <button type="submit" class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                    Save
+                </button>
+                <button type="button" onclick="cancelEditReply({{ reply.id }})" class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded hover:bg-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Reply to Reply Button -->
+    {% if user.is_authenticated %}
+    <div class="mt-2" x-data="{ showNestedReplyForm_{{ reply.id }}: false }">
+        <button @click="showNestedReplyForm_{{ reply.id }} = !showNestedReplyForm_{{ reply.id }}" type="button" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+            </svg>
+            Reply
+        </button>
+        
+        <div x-show="showNestedReplyForm_{{ reply.id }}" x-cloak class="mt-2 p-2 bg-gray-50 rounded-lg">
+            <form id="nestedReplyForm_{{ reply.id }}" method="post" data-review-id="{{ review.id }}" data-parent-reply-id="{{ reply.id }}">
+                {% csrf_token %}
+                
+                <div class="mb-2">
+                    <label for="id_content_nested_reply_{{ reply.id }}" class="block text-xs font-medium text-gray-700 mb-1">
+                        Your Reply * (min. 10 characters)
+                    </label>
+                    <textarea name="content" id="id_content_nested_reply_{{ reply.id }}" required class="w-full px-2 py-1 border border-gray-300 rounded text-xs" rows="2" placeholder="Write your reply (minimum 10 characters)..."></textarea>
+                    <div class="mt-1 flex items-center justify-between">
+                        <div id="nestedReplyError_{{ reply.id }}" class="text-xs text-red-600 hidden"></div>
+                        <span id="nestedReplyCharCount_{{ reply.id }}" class="text-xs font-medium text-gray-500">
+                            0 / 10 min
+                        </span>
+                    </div>
+                    <script>
+                        (function() {
+                            const textarea = document.getElementById('id_content_nested_reply_{{ reply.id }}');
+                            const charCount = document.getElementById('nestedReplyCharCount_{{ reply.id }}');
+                            if (textarea && charCount) {
+                                const updateCount = () => {
+                                    const count = textarea.value.length;
+                                    const minChars = 10;
+                                    charCount.textContent = count + ' / ' + minChars + ' min';
+                                    if (count < minChars) {
+                                        charCount.classList.add('text-red-600');
+                                        charCount.classList.remove('text-green-600', 'text-gray-500');
+                                    } else {
+                                        charCount.classList.add('text-green-600');
+                                        charCount.classList.remove('text-red-600', 'text-gray-500');
+                                    }
+                                };
+                                textarea.addEventListener('input', updateCount);
+                                updateCount();
+                            }
+                        })();
+                    </script>
+                </div>
+
+                <div class="mb-2">
+                    <div class="flex items-center mb-1">
+                        <input type="checkbox" name="use_real_name" id="use_real_name_nested_{{ reply.id }}" class="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500" {% if user.is_authenticated %}checked{% endif %}>
+                        <label for="use_real_name_nested_{{ reply.id }}" class="ml-1 text-xs font-medium text-gray-700">
+                            Use my name ({{ user.get_full_name|default:user.username }})
+                        </label>
+                    </div>
+                    <div>
+                        <input type="checkbox" name="post_as" id="post_as_anonymous_nested_{{ reply.id }}" value="anonymous" class="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="post_as_anonymous_nested_{{ reply.id }}" class="ml-1 text-xs font-medium text-gray-700">
+                            Post anonymously
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" id="submitNestedReply_{{ reply.id }}" class="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span class="submit-text">Post Reply</span>
+                        <span class="loading-text hidden">Posting...</span>
+                    </button>
+                    <button type="button" @click="showNestedReplyForm_{{ reply.id }} = false" class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded hover:bg-gray-300">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="text-xs text-blue-800 mb-1">
+            You must be logged in to reply.
+        </p>
+        <a href="{% url 'reviews:login' %}" class="text-xs text-blue-600 hover:text-blue-700 font-medium underline">
+            Log in to reply
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Nested Replies -->
+    {% if reply.active_child_replies %}
+    <div class="mt-2 ml-2 sm:ml-4 pl-2 sm:pl-4 border-l-2 border-gray-200 space-y-2">
+        {% for nested_reply in reply.active_child_replies %}
+        {% include 'reviews/reply_item.html' with reply=nested_reply review=review depth=depth|add:1 %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+

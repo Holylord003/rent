@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Respond to Review - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Respond to Review</h1>
+        <p class="text-gray-600 mb-6">
+            Responding to review for: <a href="{% url 'reviews:property_detail' property.id %}" class="text-blue-600 hover:text-blue-700 font-medium">{{ property.full_address }}</a>
+        </p>
+        
+        <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-400 rounded">
+            <p class="text-sm text-green-800 font-semibold mb-2">Response Guidelines:</p>
+            <ul class="text-xs text-green-800 space-y-1 list-disc list-inside">
+                <li>Keep responses professional and constructive</li>
+                <li>Address concerns respectfully</li>
+                <li>No personal attacks or insults</li>
+                <li>Focus on facts and property-related information</li>
+            </ul>
+        </div>
+
+        <!-- Review being responded to -->
+        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-xs font-semibold text-gray-700 mb-2">Review you're responding to:</p>
+            <p class="text-sm text-gray-700">{{ review.content|truncatewords:50 }}</p>
+            <p class="text-xs text-gray-500 mt-2">
+                By: {% if review.is_anonymous %}Anonymous{% else %}{{ review.author_name }}{% endif %} • 
+                {{ review.created_at|date:"M d, Y" }}
+            </p>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="{{ form.owner_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Your Name / Company Name *
+                    </label>
+                    {{ form.owner_name }}
+                    {% if form.owner_name.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.owner_name.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">This will be displayed publicly with your response</p>
+                </div>
+
+                <div>
+                    <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Your Response * (min. 20 characters)
+                    </label>
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Provide a professional response addressing the review</p>
+                    <p class="mt-1 text-xs text-red-600 font-medium">⚠️ Keep it professional - no personal attacks allowed.</p>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="mt-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium">
+                    Post Response
+                </button>
+                <a href="{% url 'reviews:property_detail' property.id %}" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-center font-medium">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Safety Guidelines & Disclaimer - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">Important Safety Information</h3>
+                    <p class="mt-2 text-sm text-yellow-700">
+                        Please read these guidelines carefully before using the Platform. Your safety and the safety of others is our priority.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Safety Guidelines & Disclaimer</h1>
+        <p class="text-gray-600 mb-6 text-sm">Last updated: {% now "F d, Y" %}</p>
+
+        <div class="prose prose-sm max-w-none space-y-6">
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">⚠️ Critical Safety Disclaimer</h2>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p class="text-red-800 font-medium leading-relaxed">
+                        <strong>IMPORTANT:</strong> All reviews, comments, and information on this Platform are based on individual user opinions and experiences. We do not verify, endorse, or guarantee the accuracy of any content posted by users. You should not rely solely on information from this Platform when making important decisions about properties, rentals, or real estate transactions.
+                    </p>
+                </div>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>Always conduct your own independent research and verification.</li>
+                    <li>Consult with licensed real estate professionals, attorneys, or other qualified experts.</li>
+                    <li>Visit properties in person before making any commitments.</li>
+                    <li>Verify all information through official sources.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">1. Content is Opinion-Based</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    All reviews and comments on this Platform represent the personal opinions and experiences of individual users. They are not professional advice, legal opinions, or verified facts. Different users may have different experiences with the same property.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">2. No Professional Advice</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    The Platform does not provide legal, financial, real estate, or professional advice. Information on the Platform should not be used as a substitute for professional consultation. Always seek advice from qualified professionals for important decisions.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">3. User Responsibility</h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    When posting content, you agree to:
+                </p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>Post only truthful, accurate information based on your personal experiences.</li>
+                    <li>Not post false, misleading, or defamatory information.</li>
+                    <li>Not post content that could cause harm or safety risks to others.</li>
+                    <li>Respect privacy and not share personal information of others without consent.</li>
+                    <li>Not use the Platform to harass, threaten, or harm others.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">4. Safety When Viewing Properties</h2>
+                <p class="text-gray-700 leading-relaxed mb-3">
+                    If you are viewing properties based on information from this Platform:
+                </p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>Always visit properties with a trusted companion when possible.</li>
+                    <li>Inform someone of your plans and location.</li>
+                    <li>Verify property ownership and legitimacy through official channels.</li>
+                    <li>Be cautious of suspicious listings or requests for personal information.</li>
+                    <li>Trust your instincts and leave if you feel unsafe.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">5. Reporting Safety Concerns</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    If you encounter content that poses a safety risk, violates our terms, or appears fraudulent, please report it immediately. We take safety concerns seriously and will investigate reports promptly.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Limitation of Liability</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    The Platform and its operators are not responsible for:
+                </p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                    <li>The accuracy, completeness, or reliability of user-generated content.</li>
+                    <li>Any decisions or actions taken based on information from the Platform.</li>
+                    <li>Any losses, damages, or harm resulting from use of the Platform.</li>
+                    <li>Interactions between users or third parties.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Emergency Situations</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    If you are in an emergency situation or immediate danger, call your local emergency services (911 in the United States) immediately. Do not rely on this Platform for emergency assistance.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Content Moderation</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    While we strive to maintain a safe environment, we cannot monitor all content in real-time. We rely on user reports and automated systems to identify problematic content. We reserve the right to remove content that violates our terms or poses safety risks.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Your Safety is Your Responsibility</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    Ultimately, your safety and the decisions you make based on information from this Platform are your responsibility. Use the Platform as a tool for gathering information, but always verify important details through official and verified sources.
+                </p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">10. Contact for Safety Issues</h2>
+                <p class="text-gray-700 leading-relaxed">
+                    If you have immediate safety concerns or need to report dangerous content, please contact us immediately through the Platform's reporting mechanisms. For emergencies, contact local law enforcement.
+                </p>
+            </section>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col sm:flex-row gap-4">
+            <a href="{% url 'reviews:all_properties' %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                ← Back to Properties
+            </a>
+            <div class="flex gap-4 text-sm">
+                <a href="{% url 'reviews:terms_of_service' %}" class="text-gray-600 hover:text-blue-600">Terms of Service</a>
+                <span class="text-gray-400">|</span>
+                <a href="{% url 'reviews:privacy_policy' %}" class="text-gray-600 hover:text-blue-600">Privacy Policy</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

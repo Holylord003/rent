@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Review - Property Reviews{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 sm:p-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Delete Review</h1>
+        
+        <div class="mb-6">
+            <p class="text-gray-700 mb-4">
+                Are you sure you want to delete your review for 
+                <a href="{% url 'reviews:property_detail' property.id %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                    {{ property.full_address }}
+                </a>?
+            </p>
+            
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                <h3 class="font-semibold text-gray-900 mb-2">{{ review.title }}</h3>
+                <p class="text-sm text-gray-600 line-clamp-3">{{ review.content|truncatewords:30 }}</p>
+            </div>
+            
+            <p class="text-red-600 font-medium">This action cannot be undone.</p>
+        </div>
+        
+        <form method="post" action="{% url 'reviews:delete_review' review.id %}">
+            {% csrf_token %}
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 font-medium">
+                    Yes, Delete Review
+                </button>
+                <a href="{% url 'reviews:property_detail' property.id %}" class="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-center font-medium">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
