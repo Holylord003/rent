@@ -1,0 +1,91 @@
+{% load review_filters %}
+<div class="border-b border-gray-200 pb-4 sm:pb-6 last:border-b-0 last:pb-0">
+    <div class="mb-3">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center">
+                        {% for i in "12345" %}
+                        {% if forloop.counter <= review.rating %}
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        {% else %}
+                        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <span class="text-xs sm:text-sm text-gray-600">{{ review.get_rating_display }}</span>
+                </div>
+            </div>
+            <div class="text-left sm:text-right flex-shrink-0">
+                <div class="text-xs sm:text-sm font-medium text-gray-900">{% if review.is_anonymous or not review.author_name %}Anonymous{% else %}{{ review.author_name }}{% endif %}</div>
+                <div class="text-xs text-gray-500 mt-0.5">{{ review.created_at|date:"M d, Y" }}</div>
+            </div>
+        </div>
+    </div>
+    {% if review.date_lived_from or review.date_lived_to %}
+    <div class="text-xs text-gray-500 mt-2 mb-2">Lived here: {% if review.date_lived_from %}{{ review.date_lived_from|date:"M Y" }}{% endif %}{% if review.date_lived_from and review.date_lived_to %} - {% endif %}{% if review.date_lived_to %}{{ review.date_lived_to|date:"M Y" }}{% elif review.date_lived_from %}(Present){% endif %}</div>
+    {% endif %}
+    {% if review.content %}
+    <div class="mt-3" x-data="{ expanded: false, showButton: false }" x-init="setTimeout(() => { const t = $refs.truncated; const f = $refs.full; if (t && f) showButton = f.scrollHeight > t.scrollHeight; }, 100);">
+        <p class="text-sm sm:text-base text-gray-700 leading-relaxed line-clamp-2 break-words overflow-hidden" x-ref="truncated" x-show="!expanded">{{ review.content }}</p>
+        <p class="text-sm sm:text-base text-gray-700 leading-relaxed" x-ref="full" style="position: absolute; visibility: hidden; width: 100%; max-width: 100%; word-wrap: break-word;">{{ review.content }}</p>
+        <p class="text-sm sm:text-base text-gray-700 leading-relaxed break-words overflow-hidden" x-show="expanded" x-cloak>{{ review.content }}</p>
+        <button @click="expanded = !expanded" x-show="showButton || expanded" x-text="expanded ? 'See less' : 'See more'" class="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"></button>
+    </div>
+    {% endif %}
+    {% if user.is_authenticated and review.created_by and review.created_by == user %}
+    <div class="flex gap-2 flex-shrink-0 mt-2">
+        <a href="{% url 'reviews:edit_review' review.id %}" class="inline-flex items-center px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700">Edit</a>
+        <a href="{% url 'reviews:delete_review' review.id %}" class="inline-flex items-center px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-red-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-red-700" onclick="return confirm('Are you sure you want to delete this review?');">Delete</a>
+    </div>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-200">
+        <div class="flex items-center gap-2">
+            <button onclick="voteReview({{ review.id }}, 'helpful')" id="helpfulBtn_{{ review.id }}" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium {% if user_vote == 'helpful' %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"><span>Helpful</span><span id="helpfulCount_{{ review.id }}" class="ml-1">{{ helpful_count }}</span></button>
+            <button onclick="voteReview({{ review.id }}, 'not_helpful')" id="notHelpfulBtn_{{ review.id }}" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium {% if user_vote == 'not_helpful' %}bg-red-100 text-red-700 hover:bg-red-200{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"><span>Not Helpful</span><span id="notHelpfulCount_{{ review.id }}" class="ml-1">{{ not_helpful_count }}</span></button>
+        </div>
+    </div>
+    {% endif %}
+    {% if review.pros_cons %}
+    <div class="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gray-50 rounded-lg"><p class="text-xs sm:text-sm font-medium text-gray-700 mb-1">Pros & Cons:</p><p class="text-xs sm:text-sm text-gray-600 whitespace-pre-line break-words">{{ review.pros_cons }}</p></div>
+    {% endif %}
+    <div class="mt-3 p-2 bg-blue-50 border-l-4 border-blue-400 rounded"><p class="text-xs text-blue-800"><strong>Disclaimer:</strong> All reviews are personal opinions of former tenants. We do not verify claims.</p></div>
+    <div class="mt-3 flex flex-wrap gap-2">
+        <a href="{% url 'reviews:report_review' review.id %}" class="inline-flex items-center px-3 py-1.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-lg hover:bg-orange-200">Report</a>
+        {% if user.is_authenticated and review.property.created_by == user and not owner_response %}
+        <a href="{% url 'reviews:respond_to_review' review.id %}" class="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-lg hover:bg-green-200">Respond as Owner</a>
+        {% endif %}
+    </div>
+    {% if owner_response %}
+    <div class="mt-4 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg">
+        <div class="mb-2"><span class="text-sm font-semibold text-green-900">Property Owner Response</span> <span class="text-xs text-green-700 bg-green-200 px-2 py-0.5 rounded">Official</span></div>
+        <div class="text-xs text-green-700">{{ owner_response.owner_name }}</div>
+        <div class="text-xs text-green-600 mt-0.5">{{ owner_response.created_at|date:"M d, Y" }}</div>
+        <p class="text-sm text-green-900 mt-2 leading-relaxed break-words">{{ owner_response.content }}</p>
+    </div>
+    {% endif %}
+    <div id="repliesContainer_{{ review.id }}" class="mt-4 ml-2 sm:ml-4 pl-3 sm:pl-4 border-l-2 border-gray-200 space-y-3">
+        {% for reply in replies %}
+        {% include 'reviews/reply_item.html' with reply=reply review=review depth=0 %}
+        {% endfor %}
+    </div>
+    {% if user.is_authenticated %}
+    <div class="mt-4" x-data="{ showReplyForm: false }">
+        <button @click="showReplyForm = !showReplyForm" type="button" class="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">Reply</button>
+        <div x-show="showReplyForm" x-cloak class="mt-3 p-3 bg-gray-50 rounded-lg">
+            <form id="replyForm_{{ review.id }}" method="post" data-review-id="{{ review.id }}">{% csrf_token %}
+                <div class="mb-3"><label for="id_content_reply_{{ review.id }}" class="block text-xs font-medium text-gray-700 mb-1">Your Reply * (min. 10 characters)</label>
+                <textarea name="content" id="id_content_reply_{{ review.id }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="3" placeholder="Write your reply..."></textarea>
+                <div id="replyError_{{ review.id }}" class="text-xs text-red-600 hidden mt-1"></div><span id="replyCharCount_{{ review.id }}" class="text-xs font-medium text-gray-500">0 / 10 min</span></div>
+                <div class="mb-3"><input type="checkbox" name="use_real_name" id="use_real_name_reply_{{ review.id }}" class="w-4 h-4 text-blue-600 border-gray-300 rounded" {% if user.is_authenticated %}checked{% endif %}><label for="use_real_name_reply_{{ review.id }}" class="ml-2 text-xs font-medium text-gray-700">Use my name</label></div>
+                <div><input type="checkbox" name="post_as" id="post_as_anonymous_reply_{{ review.id }}" value="anonymous" class="w-4 h-4 text-blue-600 border-gray-300 rounded" {% if not user.is_authenticated %}checked{% endif %}><label for="post_as_anonymous_reply_{{ review.id }}" class="ml-2 text-xs font-medium text-gray-700">Post anonymously</label></div>
+                <div id="nameFieldReply_{{ review.id }}" class="mt-2 {% if not user.is_authenticated %}hidden{% endif %}"><input type="text" name="author_name" id="id_author_name_reply_{{ review.id }}" maxlength="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Your name" value="{% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% endif %}"></div>
+                <div class="flex gap-2 mt-2"><button type="submit" id="submitReply_{{ review.id }}" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg"><span class="submit-text">Post Reply</span><span class="loading-text hidden">Posting...</span></button><button type="button" @click="showReplyForm = false" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg">Cancel</button></div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg"><p class="text-xs text-blue-800 mb-2">You must be logged in to reply to comments.</p><a href="{% url 'reviews:login' %}?next={% url 'reviews:property_detail' property.id %}" class="text-xs text-blue-600 hover:text-blue-700 font-medium underline">Log in to reply</a></div>
+    {% endif %}
+</div>

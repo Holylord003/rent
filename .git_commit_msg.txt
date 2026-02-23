@@ -1,1 +1,0 @@
-Property Reviews app with auth Cloudinary staff tools and email verification

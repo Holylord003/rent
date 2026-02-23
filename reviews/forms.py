@@ -37,7 +37,7 @@ class PropertySearchForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': 'State (e.g., CA, NY)'
+            'placeholder': 'State (e.g., Lagos, Rivers)'
         })
     )
     city = forms.CharField(

@@ -45,6 +45,9 @@ localhost+*.pem
 # Media files (user uploads)
 media/
 
+# Temp / tooling
+.git_commit_msg.txt
+
 # IDE
 .vscode/
 .idea/

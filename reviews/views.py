@@ -7,7 +7,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import PasswordResetConfirmView
 from django.urls import reverse_lazy, reverse
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.core.exceptions import ValidationError
@@ -643,22 +643,24 @@ def property_detail(request, property_id):
     else:
         form.fields['use_real_name'].initial = False
     
-    # Preload replies and owner responses for all reviews
-    # Get top-level replies (replies without parent_reply)
+    # Paginate reviews: show first page only; "Load more" fetches rest via AJAX
+    reviews_first_page = list(all_reviews[:REVIEWS_PAGE_SIZE])
+    has_more_reviews = review_count > REVIEWS_PAGE_SIZE
+    reviews_next_page = 2
+    reviews_page_size = REVIEWS_PAGE_SIZE
+
+    # Preload replies and owner responses for the first page of reviews
     def get_replies_with_children(review):
         """Get all top-level replies with their nested children, excluding suspended users."""
-        # Filter out replies from suspended users
-        # Handle cases where created_by might be None (deleted users) - show those
         top_level_replies = review.replies.filter(
             parent_reply__isnull=True
         ).filter(
             Q(created_by__isnull=True) | Q(created_by__is_suspended=False)
         ).order_by('created_at')
-        
         return list(top_level_replies)
-    
+
     reviews_with_replies = []
-    for review in all_reviews:
+    for review in reviews_first_page:
         top_level_replies = get_replies_with_children(review)
         owner_response = getattr(review, 'owner_response', None) if hasattr(review, 'owner_response') else None
         
@@ -693,8 +695,83 @@ def property_detail(request, property_id):
         'user_review': user_review,
         'review_sort': review_sort,
         'property_images': property_images,
+        'has_more_reviews': has_more_reviews,
+        'reviews_next_page': reviews_next_page,
+        'reviews_page_size': reviews_page_size,
     }
     return render(request, 'reviews/property_detail.html', context)
+
+
+REVIEWS_PAGE_SIZE = 5
+
+
+def _get_reviews_queryset(property_obj, sort):
+    """Return filtered and sorted reviews queryset for a property (excludes suspended)."""
+    qs = property_obj.reviews.filter(
+        Q(created_by__isnull=True) | Q(created_by__is_suspended=False)
+    )
+    if sort == 'oldest':
+        qs = qs.order_by('created_at')
+    elif sort == 'rating_high':
+        qs = qs.order_by('-rating', '-created_at')
+    elif sort == 'rating_low':
+        qs = qs.order_by('rating', '-created_at')
+    else:
+        qs = qs.order_by('-created_at')
+    return qs
+
+
+def _build_reviews_with_replies(request, reviews_queryset):
+    """Build reviews_with_replies list for a slice of reviews."""
+    def get_replies_with_children(review):
+        top_level = review.replies.filter(parent_reply__isnull=True).filter(
+            Q(created_by__isnull=True) | Q(created_by__is_suspended=False)
+        ).order_by('created_at')
+        return list(top_level)
+
+    result = []
+    for review in reviews_queryset:
+        top_level_replies = get_replies_with_children(review)
+        owner_response = getattr(review, 'owner_response', None) if hasattr(review, 'owner_response') else None
+        helpful_count = ReviewVote.objects.filter(review=review, vote_type='helpful').count()
+        not_helpful_count = ReviewVote.objects.filter(review=review, vote_type='not_helpful').count()
+        user_vote = None
+        if request.user.is_authenticated:
+            uv = ReviewVote.objects.filter(review=review, user=request.user).first()
+            user_vote = uv.vote_type if uv else None
+        result.append({
+            'review': review,
+            'replies': top_level_replies,
+            'reply_form': ReplyForm(),
+            'owner_response': owner_response,
+            'helpful_count': helpful_count,
+            'not_helpful_count': not_helpful_count,
+            'user_vote': user_vote,
+        })
+    return result
+
+
+@require_http_methods(["GET"])
+def property_reviews_page_api(request, property_id):
+    """Return a page of reviews as HTML for AJAX 'Load more comments'. Returns JSON with html and has_more."""
+    property_obj = get_object_or_404(Property, id=property_id)
+    if property_obj.created_by and getattr(property_obj.created_by, 'is_suspended', False):
+        return JsonResponse({'html': '', 'has_more': False})
+    sort = request.GET.get('sort', 'newest')
+    page = max(1, int(request.GET.get('page', 1)))
+    qs = _get_reviews_queryset(property_obj, sort)
+    total = qs.count()
+    start = (page - 1) * REVIEWS_PAGE_SIZE
+    end = start + REVIEWS_PAGE_SIZE
+    page_reviews = list(qs[start:end])
+    has_more = end < total
+    reviews_with_replies = _build_reviews_with_replies(request, page_reviews)
+    html = render_to_string('reviews/property_detail_reviews_fragment.html', {
+        'reviews_with_replies': reviews_with_replies,
+        'property': property_obj,
+        'user': request.user,
+    }, request=request)
+    return JsonResponse({'html': html, 'has_more': has_more})
 
 
 @login_required
@@ -1128,6 +1205,118 @@ def user_profile(request):
         'reviews_count': Review.objects.filter(created_by=user).count(),
     }
     return render(request, 'reviews/user_profile.html', context)
+
+
+@require_http_methods(["POST"])
+def submit_review_api(request):
+    """API endpoint for submitting reviews (comments) via AJAX. Returns JSON so the page does not refresh."""
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            'success': False,
+            'error': 'You must be logged in to submit a comment. Please log in or create an account.'
+        }, status=401)
+
+    property_id = request.POST.get('property_id')
+    if not property_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'Property ID is required.'
+        }, status=400)
+
+    property_obj = get_object_or_404(Property, id=property_id)
+    if property_obj.created_by and hasattr(property_obj.created_by, 'is_suspended') and property_obj.created_by.is_suspended:
+        return JsonResponse({
+            'success': False,
+            'error': 'This property is no longer available.'
+        }, status=404)
+
+    form = ReviewForm(request.POST)
+    if not form.is_valid():
+        errors = {k: (v[0] if v else 'Invalid value') for k, v in form.errors.items()}
+        return JsonResponse({
+            'success': False,
+            'error': 'Please correct the errors in your comment.',
+            'errors': errors
+        }, status=400)
+
+    # Duplicate review check
+    existing = Review.objects.filter(property=property_obj, created_by=request.user).first()
+    if existing:
+        return JsonResponse({
+            'success': False,
+            'error': 'You have already submitted a review for this property. You can edit or delete your existing review.'
+        }, status=400)
+
+    # Rate limiting
+    one_hour_ago = timezone.now() - timedelta(hours=1)
+    if Review.objects.filter(created_by=request.user, created_at__gte=one_hour_ago).count() >= 3:
+        return JsonResponse({
+            'success': False,
+            'error': 'You have submitted too many reviews recently. Please wait before submitting another review.'
+        }, status=429)
+
+    # Similar content check (optional)
+    content = form.cleaned_data.get('content', '').strip()
+    if content:
+        one_day_ago = timezone.now() - timedelta(days=1)
+        similar = Review.objects.filter(
+            created_by=request.user,
+            content__icontains=content[:50],
+            created_at__gte=one_day_ago
+        ).exclude(property=property_obj)
+        if similar.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'You have recently submitted a similar review. Please write a unique review for this property.'
+            }, status=400)
+
+    review = form.save(commit=False)
+    review.property = property_obj
+    review.created_by = request.user
+    if not review.title:
+        review.title = content[:50] + ('...' if len(content) > 50 else '') if content else 'Comment'
+    post_as = request.POST.get('post_as')
+    use_real_name = request.POST.get('use_real_name') == 'on' or form.cleaned_data.get('use_real_name', False)
+    if post_as == 'anonymous' or not use_real_name:
+        review.author_name = ''
+        review.is_anonymous = True
+    else:
+        author_name = form.cleaned_data.get('author_name', '').strip()
+        if not author_name:
+            author_name = request.user.get_full_name() or request.user.username
+        review.author_name = author_name
+        review.is_anonymous = False
+    review.is_approved = True
+    review.save()
+    notify_review_posted(review)
+
+    # Updated counts for the property (only non-suspended)
+    all_reviews = property_obj.reviews.filter(
+        Q(created_by__isnull=True) | Q(created_by__is_suspended=False)
+    )
+    review_count = all_reviews.count()
+    avg_rating = all_reviews.aggregate(Avg('rating'))['rating__avg']
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Thank you for your comment! It has been posted and is now visible.',
+        'review_count': review_count,
+        'avg_rating': round(float(avg_rating or 0), 1),
+        'review': {
+            'id': review.id,
+            'title': review.title or 'Comment',
+            'rating': review.rating,
+            'rating_display': review.get_rating_display(),
+            'content': review.content or '',
+            'author_name': 'Anonymous' if (review.is_anonymous or not review.author_name) else review.author_name,
+            'created_at': review.created_at.strftime('%b %d, %Y'),
+            'pros_cons': review.pros_cons or '',
+            'date_lived_from': review.date_lived_from.strftime('%b %Y') if review.date_lived_from else '',
+            'date_lived_to': review.date_lived_to.strftime('%b %Y') if review.date_lived_to else '',
+            'edit_url': reverse('reviews:edit_review', args=[review.id]),
+            'delete_url': reverse('reviews:delete_review', args=[review.id]),
+        }
+    })
 
 
 @require_http_methods(["POST"])

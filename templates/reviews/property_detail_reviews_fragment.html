@@ -1,0 +1,4 @@
+{% load review_filters %}
+{% for item in reviews_with_replies %}
+{% include "reviews/property_detail_review_item.html" with review=item.review replies=item.replies reply_form=item.reply_form owner_response=item.owner_response helpful_count=item.helpful_count not_helpful_count=item.not_helpful_count user_vote=item.user_vote property=property user=user %}
+{% endfor %}
